@@ -1,0 +1,518 @@
+
+                   Awake FILE
+                  Version 3.0
+                 Release Notes
+
+
+Introduction
+------------
+
+Awake FILE is a secure Open Source framework that allows to program very 
+easily file uploads/downloads, remote file access and RPC through http. 
+File transfers include powerful features like file chunking and automatic 
+recovery mechanism.
+
+Security has been taken into account from the design: server side allows 
+to specify strong security rules in order to protect the files and to
+secure the RPC calls.
+
+Awake FILE is licensed through the GNU Lesser General Public License 
+(LGPL v2.1): you can use it for free and without any constraints in your 
+open source projects and in your commercial applications.
+
+
+Awake FILE Version 3.0 - 26-mar-2015
+------------------------------------
+
+New features:
+
+- New client class RemoteSession replaces deprecated FileSession 
+  for session establishment.
+  
+- New client class RemoteFile allows easy file method execution on 
+  remote files, with exactly same method signature and behavior 
+  as in java.io.File.
+  Example: RemoteFile.exists() will call a File.exists() on remote
+  server and return the result.
+  
+- new CommonsConfigurator concrete class SshAuthCommonsConfigurator allows 
+  zero-code (usernname, password) authentication. Authentication is done 
+  against the host SSH server with the login(username, password) method.
+  
+- DefaultCommonsConfigurator.addSecretForAuthToken() has been enhanced and
+  does not return null anymore. It returns now the concatenation of 
+  server specific values hard/impossible to guess by the client side.
+  
+- New method RemoteSession.getRemoteJavaVersion() allows to retrieve
+  the Java version of the servlet container from client side.
+  
+- UrlSession has been deprecated: no real usage advantage 
+  over java.net.URLConnection.
+  
+- Undocumented API package org.kawanfw.file.api.server.fileaction has been
+  modified, renamed and is not any more visible.
+  
+- FileSession has been deprecated: 
+  session establishment is now to be done using RemoteSession class 
+  and operations on remote file using RemoteFile class.
+  
+- FileSession has been retrofitted: session establishment  
+  internally uses new RemoteSession class and file method calls 
+  internally use new RemoteFile class methods.
+  
+- We have kept a 2.0 to 3.0 full upgrade compatibility by 
+  deprecating FileSession instead of removing the class 
+  (which is our standard policy): the existing code changes would 
+  be too heavy for existing 2.0 applications and would have discouraged 
+  our users base to adopt/install this new version.
+  
+- So, your previous 2.0 client code using FileSession will run without 
+  any modification. Same with server side.
+  
+  
+Fixed bugs:
+
+- Server side would brutally interrupt the ServerFileManager 
+  servlet with a 500 code if a client called method FileSession.call() 
+  and the called method was missing some dependencies. 
+  This has been fixed: a clean ClassNotFoundException is now thrown.
+
+
+Upgrading from previous version 2.0:
+
+- Binary compatible both on client and server side.
+
+- WARNING: client libraries must be redeployed because 
+  internal client/server protocol has been rewritten. 
+
+
+Awake FILE Version 2.0.2 - 04-feb-2015
+--------------------------------------
+
+Fixed bugs:
+- Client side classes RemoteInputStream & RemoteOutputStream called
+  server side org.kawanfw.commons.api.server.util.Sha1 API. This could
+  cause a problem when generating Android client side jar and other
+  third parties client side jars, or when using obfuscation as documented.
+  This has been fixed.
+  
+Misc:
+- Code refactor. Some commons classes where stored in org.kawanfw.file.*
+  packages. They have been moved to org.kawanfw.commons.* packages.
+- Some Javadoc spelling errors have been fixed.
+
+  
+Awake FILE Version 2.0.1 - 27-jan-2015
+--------------------------------------
+
+Fixed bugs:
+- DefaultCommonsConfigurator.getConnection() could throw an unrecoverable
+  NullPointerException if ServerFileManager servlet was tested before
+  first client side call. This has been fixed.
+- UTF-8 character encoding was not always forced on server side. This has 
+  been fixed.
+
+Awake FILE Version 2.0 - 20-jan-2015
+------------------------------------
+
+New features:
+- New FileSession.rename method allows to rename files on the server.
+- New classes RemoteInputStream & RemoteOutputStream allow
+  to use InputStream & OutputStream for file transfers when progress
+  indicators are needed.
+- All file transfer operations have been internally retrofitted with new 
+  RemoteInputStream & RemoteOutputStream. They are now the core classes of the
+  framework for file uploads & downloads.
+- Progress monitor helper interface TransferProgressManager and implementation 
+  class DefaultTransferProgressManager have thus been suppressed: they are not
+  needed anymore as RemoteInputStream & RemoteOutputStream allow easy 
+  implementation of progress indicators. See Tutorial & included examples.
+- HttpTransferInterruptedException is suppressed (InterruptedException should be
+  throwned when an InputStream/OutputStream read/write is cancelled by the progress
+  monitor. 
+- Uses now Google Gson version 2.3.1.
+
+Please note that we prefer to suppress brutally than to deprecate 
+unnecessary classes and methods. This favors keeping a clean and uncluttered API.
+  
+Upgrading from previous version 1.5:
+- Not binary compatible both on client and server side: you 
+  need to change and recompile your source code.
+- WARNING: client libraries must be redeployed because 
+  internal client/server protocol has been modified. 
+  
+
+Awake FILE Version 1.5 - 12-aug-2014
+------------------------------------
+
+New features:
+- Root package name has been changed from "org.awakefw" to "org.kawanfw".
+- APIs names change. Classes names have been shortened in sake of implicity and 
+  the "Awake" word has been removed from all classes and methods.
+- Uses new 3.3.2 version of Apache Commons Lang.
+- Uses new 1.1.3 version of Apache Commons Logging.
+
+Fixed bugs:
+- In some cases, SSL/TLS url wtarting with "https://" could not be used. 
+  This has been fixed.
+
+Please note that old API classes and method names have not been deprecated,
+but suppressed in order to keep a clean and uncluttered API.
+
+This table describes the renamed API classes:
+
+Old Name                        New Name
+--------                        --------
+
+AwakeProgressManager            ==> TransferProgressManager
+DefaultAwakeProgressManager     ==> DefaultTransferProgressManager
+AwakeCommonsConfigurator        ==> CommonsConfigurator
+DefaultAwakeCommonsConfigurator ==> DefaultCommonsConfigurator
+AwakeFileSession                ==> FileSession
+AwakeUrl                        ==> UrlSession
+AwakeCallable                   ==> ClientCallable
+AwakeCallableNoAuth             ==> ClientCallableNoAuth
+AwakeFileConfigurator           ==> FileConfigurator
+DefaultAwakeFileConfigurator    ==> DefaultFileConfigurator
+AwakeFileManager                ==> ServerFileManager	
+
+Upgrading from previous version 1.4:
+- Not binary compatible both on client and server side: you
+  need to change and recompile your source code.
+- WARNING: client libraries must be redeployed because 
+  internal client/server protocol has been modified. 
+
+
+Awake FILE Version 1.4 - 22-apr-2014
+------------------------------------
+
+New features:
+- File chunking is now supported for both upload & download.
+  Files are now chunked when downloaded with AwakeFileSession.download(). 
+  Default chunk length is 100 Mb. Chunking allows to download files with
+  no size limit. 
+- Awake FILE now supports recovery for large files upload and download.
+  See Tutorial for how to and examples.
+- Methods in AwakeFileSession now throw SocketException to be cleaner. 
+  This has no impact on calling/user code.
+- Thrown exceptions are better described in Tutorial and include
+  SocketException and HttpTransferInterruptedException.
+  
+Upgrading from previous version 1.3.3b:
+- Binary compatible both on client and server side: you don't 
+  need to recompile your source code.
+- WARNING: client libraries must be redeployed because 
+  internal client/server protocol has been modified. 
+    
+  
+Feedback
+--------
+
+Please direct all bugs to contact@awakeframework.org.
+
+
+Previous Versions
+-----------------
+
+Awake FILE Version 1.3.3b - 15-apr-2014
+---------------------------------------
+
+Fixed bugs:
+- Jars contained example code that could cause potential conflict.
+  The example code has been removed.
+
+Awake FILE Version 1.3.3 - 14-apr-2014
+--------------------------------------
+
+New features:
+- Client side is now always repeatable.  
+  HttpProtocolParameters.setRepeatable(boolean repeatable) is now
+  deprecated and does nothing.
+  Client side is always repeatable for 2 reasons: a) execution
+  is faster, b) it's safer with proxies and with slow or 
+  overloaded networks.
+- It is now possible to define the number of times the HttpRequest 
+  should  be retried after a recoverable exception during execution. 
+  See HttpProtocolParameters.setRetryCount(int retryCount).
+
+Upgrading from previous version 1.3.2:
+- Binary compatible both on client and server side: you don't 
+  need to recompile your source code.
+- WARNING: client libraries must be redeployed because 
+  internal client/server protocol has been modified.  
+
+
+Awake FILE Version 1.3.2 - 9-apr-2014
+-------------------------------------
+
+New features:
+- Malformed responses coming from server side, aka not starting with 
+  SEND_OK or SEND_FAILED, were always reported as an user configuration
+  failure (URL not corresponding to an Awake servlet).
+  This was not always true, as the server error message 
+  could appear after a communication problem, a proxy failure, etc. 
+  The new message is cleaner, complete, give details about 
+  possible errors and displays the URL for easier debug.
+
+Upgrading from previous version 1.3.1:
+- Binary compatible both on client and server side: you don't 
+  need to recompile your source code.
+  
+Awake FILE Version 1.3.1 - 3-apr-2014
+-------------------------------------
+
+New features:
+- Proxy authentication is done once per session when using a proxy. 
+  This allows 25% speed gain.
+- It is possible to force client side to be repeatable. Default behavior 
+  is non repeatable, except when using a proxy. 
+  See org.awakefw.commons.api.client.HttpProtocolParameters for usage.
+
+Fixed bugs:
+- File upload was not repeatable when using a proxy. 
+  Upload thus could fail with some proxies. This has been fixed and file 
+  upload is now always repeatable when using a proxy.
+
+Upgrading from previous version 1.3:
+- Binary compatible both on client and server side: you don't 
+  need to recompile your source code.
+  
+  
+Awake FILE Version 1.3 - 10-feb-2014
+------------------------------------
+
+New features:
+- Files are now chunked when uploaded with AwakeFileSession.upload(). 
+  Default chunk length is 100 Mb. Chunking allows to upload files with
+  no size limit. 
+- Client AwakeFileSession & AwakeUrl API classes are not anymore marked 
+  final. This will allow to stub or Mock client API classes for Unit 
+  tests.  
+
+Misc:
+- Javadoc corrections. 
+
+
+Awake FILE Version 1.2.5 - 26-dec-2013
+--------------------------------------
+
+New features:
+- DefaultAwakeCommonsConfigurator.getConnection() Exception messages are 
+  more precise on client side if there is a DataSource configuration error
+  in jdbc/awake-default Resource.
+  
+Misc:
+- Javadoc corrections. 
+- Product name is now Awake FILE.
+
+
+Awake FILE Version 1.2.4 - 17-dec-2013
+--------------------------------------
+  
+New features:
+- New AwakeCommonsConfigurator methods getIPsWhitelist() & getIPsBlacklist().
+- AwakeCommonsConfigurator.getBannedIPs() is now deprecated and to be replaced by 
+  AwakeCommonsConfigurator.getIPsBlacklist().
+
+
+Awake FILE Version 1.2.3 - 07-jun-2013
+--------------------------------------
+  
+New features:
+- Better security: java.io.tmpdir is not anymore used on
+  server side for files upload/download.
+- Uses new 1.3 version of Apache Commons Fileupload.
+- Uses new 4.2.5 version of Apache HttpClient.
+- Javadoc has been cleaned/updated for future Awake SQL version.
+- Deprecated Awake Pool classes have been removed.
+
+
+Upgrading from previous version 1.2.2:
+- Client side behavior is unchanged and does need to be redeployed.
+- Binary compatible both on client and server side: you don't 
+  need to recompile your source code.
+  
+
+Awake FILE Version 1.2.2 - 12-apr-2013
+--------------------------------------
+  
+Fixed bugs:
+- The API AwakeFileSession.getVersion() would return an incorrect value. This has been fixed.
+- Miscellaneous Javadoc bugs have been fixed.
+
+
+Awake FILE Version 1.2.1 - 24-jan-2013
+--------------------------------------
+
+New features:
+- The default connection pool mechanism is now 
+  the Tomcat JDBC Connection Pool. It's embedded and works
+  with other non-Tomcat servlet containers.  
+- The code has been refactored for clean code separation on 
+  client and server side.
+  
+Fixed bugs:
+- There was a bug in ServerUserException that could truncate server 
+  error messages. This has been fixed.
+
+Upgrading from previous version 1.2:
+- Client side behavior is unchanged and does need to be redeployed.
+- Binary compatible both on client and server side: you don't 
+  need to recompile your source code.
+  
+Awake FILE Version 1.2 - 25-oct-2012
+------------------------------------
+
+New features:
+- Communication protocol between client and server has been rewritten 
+  using fast JSON.simple for most data exchange (instead of Google GSon).
+  
+Fixed bugs:
+- Authentication Token was not always unique due to a bug. This has been fixed.
+
+Upgrading from previous version 1.1.1:
+- Because communication protocol has been changed: client side needs to be re-deployed. 
+  (Previous client side 1.1.1 will not work with new server side 1.2).
+- Binary compatible both on client and server side: you don't need to recompile your source code.
+
+
+Awake FILE Version 1.1.1 - 16-aug-2012
+--------------------------------------
+
+New features:
+- Using Awake connection pool mechanism, it's now possible to define 
+  the maximum time in seconds a Connection can be checked out before
+  being recycled. See org.awakefw.commons.api.server.AwakeDataSource Javadoc.
+- The log file used for Awake connection pool mechanism may be updated 
+  in append mode. See org.awakefw.commons.api.server.AwakeDataSource Javadoc.
+- MessageDisplayer has been moved from org.awakefw.file.api.util to 
+  org.awakefw.file.test.util.
+
+Upgrading from previous version 1.1:
+- Client side behavior is unchanged and does need to be redeployed.
+- Binary compatible both on client and server side: you don't need to recompile your source code
+
+Awake FILE Version 1.1 - 31-jul-2012
+------------------------------------
+
+New features:
+- Android is now supported on the client side with a dedicated packaging.
+- Source code had complete rewriting & refactoring for android compatibility.
+
+Awake FILE Version 1.0.10 - 01-june-2012
+----------------------------------------
+  
+Fixed bugs:
+- AwakeFileSession.length() would always return 0 on existing files with special characters. 
+  This has been fixed.
+  
+        
+Awake FILE Version 1.0.9 - 28-may-2012
+--------------------------------------
+ 
+New features:
+- DefaultAwakeCommonsConfigurator members are all static. This ensures Connection pools
+  are not uselessly recreated when a new DefaultAwakeCommonsConfigurator() is called.
+ 
+Fixed bugs:
+- The Connection of running SQL command would be automatically closed after 60 seconds.
+  This has been fixed.
+
+
+        
+Awake FILE Version 1.0.8 - 03-may-2012
+--------------------------------------
+
+New features:
+- If AwakeCommonsConfigurator.forceSecureHttp returns true, the client side
+  automatically and silently updates the "http" scheme to "https" prior to
+  authentication (username & password will be sent using https).
+- It is now possible to use self-signed SSL Certificates on the server side.
+  See org.awakefw.commons.api.client.HttpProtocolParameters Javadoc.
+
+
+Awake FILE Version 1.0.7 - 18-Apr-2012
+--------------------------------------
+
+New features:
+- The AwakeFileConfigurator.runIfCallDisallowed method has been renamed 
+  to runIfCallRefused (for coherence naming with Awake SQL).
+
+Fixed bugs:
+- Java version was not tested in AwakeFileSession constructors. 
+  This has been fixed.
+  
+Awake FILE Version 1.0.6 - 04-Apr-2012
+--------------------------------------
+
+New features:
+- A complete diagnosis with full stack trace is available both
+  on client and server side when an AwakeCommonsConfigurator or 
+  AwakeFileConfigurator throws an Exception.
+- Java version is tested in AwakeFileSession constructors.
+- The HTML encoding supports non-ASCII characters (allows support
+  for all languages).
+   
+Fixed bugs:
+- The username was not always set when calling AwakeFileSession.call().
+
+
+Awake FILE Version 1.0.5 - 30-Mar-2012  
+--------------------------------------
+
+New features:
+- Cleaner messages if user AwakeCommonsConfigurator implementation throws an
+  Exception.
+- Cleaner and mored detailed messages on client side if JDBC Connection 
+  can not be created  on the server side.  
+- The method Connection getConnection(String username, String password) has been 
+  removed from AwakeCommonsConfigurator. (Could never be used, this was a 
+  design mistake).
+- Misc Javadoc cleaning.  
+
+
+Awake FILE Version 1.0.4 - 22-Mar-2012 
+--------------------------------------
+
+New features:
+- Remove AwakeSecurityException and use instead java.lang.SecurityException.
+- Rename AwakeRemoteException to RemoteException.
+- Cleaner SQLException messages if server side can't build the Awake 
+  Connection pool.
+- Architecture change: Awake Commons use it's own internal codec for
+  Base64InputStream &  Base64OutputStream This prevent classloading
+  errors if Apache commons-codec-1.3.jar is in the classpath and
+  supersedes the loading of commons-codec-1.4.jar
+
+
+Awake FILE Version 1.0.3 - 24-Feb-2012 
+--------------------------------------
+
+Fixed bugs:
+- awake-file-1.0.2.jar contained many examples (due to a generation error).
+- Misc Javadoc errors.
+
+
+Awake FILE Version 1.0.2 - 23-Feb-2012  
+--------------------------------------
+
+New features:
+- Source code is compatible with Java 7.
+- Java 6 binaries have been tested on Java 7 JRE on both client and server side.
+- The login security mechanism is configurable through the 
+  AwakeCommonsConfigurator.computeAuthToken method.
+- A new org.awakefw.commons.api.server.util package has been added and contains
+  utility classes for server side programming.
+
+
+Awake FILE Version 1.0.1 - 07-Feb-2012 
+--------------------------------------
+
+New features:
+- Architecture changes: 
+  Package com.javaexchange.dbConnectionBroker is suppressed.
+  AwakeLogger is moved from org.awakefw.commons.server.util to 
+  org.awakefw.file.util. 
+
+
+The Awake FILE Team

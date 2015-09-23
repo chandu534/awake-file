@@ -1,0 +1,115 @@
+<?xml version="1.0"?>
+	
+<project name="Buildfile for awake-filex.y.z jar" default="all" basedir=".">
+    
+    <property name="version"          		value="3.0"/> 
+	
+    <property name="awake-file.jar"          value="awake-file-${version}.jar"/>    	
+    <property name="awake-file-android.jar"  value="awake-file-android-${version}.jar"/> 
+		
+    <!-- Update the webapp.lib.dir for your installation --> 	
+    <property name="webapp.lib.dir"   				value="c:\tomcat\webapps\awake-file\WEB-INF\lib"/>  	
+	<property name="awake-file-test.dir"   			value="I:\_dev_awake\awake-file-test\lib"/> 
+	<property name="awake-sql-test.dir"   			value="I:\_dev_awake\awake-sql-test\lib"/>       	
+    <property name="awake-file-android-test.dir" 	value="I:\_dev_awake\awake-file-android-test\lib"/>  
+    <property name="awake-sql-android-test.dir"  	value="I:\_dev_awake\awake-sql-android-test\lib"/>  
+    	
+    <property name="lib.dir"                 value="../lib"/> 
+    <property name="dist.dir"                value="../dist"/>   
+    <property name="bin.dir"                 value="../bin"/>	 
+        	
+    <target name="jar" description="Generates awake-filex.y.z.jar in the 'dist.dir' directory.">
+        <jar jarfile="${dist.dir}/${awake-file.jar}" 
+         basedir="${bin.dir}"
+         includes="**/*.class"
+        	
+         excludes=" **android/**,  
+         		    **org/kawanfw/file/util/android/**,
+        	        **org/kawanfw/file/test/**, 
+        	        **org/kawanfw/file/examples/**"
+        />  
+    </target>
+	
+	<target name="copy.webapp.lib.dir" depends="jar">
+	   <copy file="${dist.dir}/${awake-file.jar}" todir="${webapp.lib.dir}"/>
+    </target>
+	
+    <target name="copy.test.dir" depends="copy.webapp.lib.dir">
+       <copy file="${dist.dir}/${awake-file.jar}" todir="${awake-file-test.dir}"/>
+    </target>	
+	
+    <target name="copy.test2.dir" depends="copy.test.dir">
+       <copy file="${dist.dir}/${awake-file.jar}" todir="${awake-sql-test.dir}"/>
+    </target>			
+		
+	<!-- We unjar the Android dedicated code that can't compile here 
+	<target name="extlib_unzip" depends="copy.test2.dir">
+	   <unzip src="${lib.dir}/kawanfw-android-util-1.0.jar"           dest="${bin.dir}"/>     
+	</target>
+	--> 
+	
+    <target name="jar_android" depends="copy.test2.dir" description="Generates awake-file-android-x.y.zjar in the 'dist.dir' directory.">
+        <jar jarfile="${dist.dir}/${awake-file-android.jar}" 
+         basedir="${bin.dir}"
+         includes="**/*.class"
+        
+        	excludes="**android/**, 
+                       **org/kawanfw/commons/api/server/**,
+                        **org/kawanfw/commons/server/util/**,
+                        **org/kawanfw/file/test/**, 
+                        **org/kawanfw/file/examples/**, 
+                        **org/kawanfw/file/servlet/**, 
+                    	**org/kawanfw/file/api/server/**" 
+        	
+            
+        />  
+    </target>           
+
+	
+	<!--
+                        **org/apache/commons/logging/impl/AvalonLogger.class,
+                        **org/apache/commons/logging/impl/Jdk13LumberjackLogger.class,
+                        **org/apache/commons/logging/impl/Jdk14Logger.class,
+                        **org/apache/commons/logging/impl/Log4JLogger.class,
+                        **org/apache/commons/logging/impl/LogKitLogger.class,   	
+	-->
+	
+	<!--
+    <target name="jar_android" depends="copy.test.ee" description="Generates awake-file-android-x.y.zjar in the 'dist.dir' directory.">
+        <jar jarfile="${dist.dir}/${awake-file-android.jar}" 
+         basedir="${bin.dir}"
+         includes="**/*.class"
+        
+            excludes="  **org/apache/commons/fileupload/**,
+        	
+              
+                        **org/kawanfw/test/**, 
+                        **org/kawanfw/sql/examples/**, 
+                
+                        **org/kawanfw/file/api2/client/**,
+                
+                        **org/kawanfw/commons/api/server/**,
+                        **org/kawanfw/commons/server/util/**,           
+                        **org/kawanfw/file/servlet/**,
+                
+                        **org/kawanfw/file/api/server/**,
+                
+                        **org/kawanfw/sql/servlet/**, 
+                        **org/kawanfw/sql/api/server/**,
+                        **org/kawanfw/sql/licensing/**"/>          	
+        	
+    </target>
+    -->            	
+    
+    <target name="copy.file.android" depends="jar_android">
+       <copy file="${dist.dir}/${awake-file-android.jar}" todir="${awake-file-android-test.dir}"/>
+    </target>
+    
+    <target name="copy.sql.android" depends="copy.file.android">
+       <copy file="${dist.dir}/${awake-file-android.jar}" todir="${awake-sql-android-test.dir}"/>
+    </target>   
+    	
+	<target name="all" depends="copy.sql.android" description="Do all!">
+	</target>
+  
+</project>

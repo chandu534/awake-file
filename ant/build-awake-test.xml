@@ -1,0 +1,21 @@
+<?xml version="1.0"?>
+	
+<project name="Buildfile for test classes" default="all" basedir=".">
+	
+    <!-- Update the webapp.classes.dir for your installation --> 	
+    <property name="webapp.lib.dir"   value="c:\tomcat\webapps\awake-file\WEB-INF\classes"/>     
+	
+    <property name="bin.dir"    value="../bin"/>   
+	 
+    <target name="copyall"  description="Move compiled classes.">
+        <copy todir="${webapp.lib.dir}">
+        	   <fileset dir = "${bin.dir}"
+        	    includes="**/org/kawanfw/file/test/api/server/**"/>  
+        </copy>
+    </target>
+            
+
+    <target name="all" depends="copyall" description="Do all!">
+    </target>
+  
+</project>

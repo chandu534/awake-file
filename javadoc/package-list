@@ -1,0 +1,5 @@
+org.kawanfw.commons.api.client
+org.kawanfw.commons.api.server
+org.kawanfw.commons.api.server.util
+org.kawanfw.file.api.client
+org.kawanfw.file.api.server
