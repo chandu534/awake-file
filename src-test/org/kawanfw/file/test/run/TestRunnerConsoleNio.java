@@ -24,12 +24,13 @@
  */
 package org.kawanfw.file.test.run;
 
+import java.net.PasswordAuthentication;
+import java.net.Proxy;
 import java.sql.SQLException;
 import java.util.Date;
 
 import org.apache.commons.lang3.SystemUtils;
 import org.kawanfw.commons.api.client.HttpProtocolParameters;
-import org.kawanfw.commons.api.client.HttpProxy;
 import org.kawanfw.commons.util.FrameworkSystemUtil;
 import org.kawanfw.file.api.client.RemoteSession;
 import org.kawanfw.file.test.api.client.nio.CallTestNio;
@@ -74,14 +75,14 @@ public class TestRunnerConsoleNio {
 	new DeleteAllNio().test(remoteSession);
 	new CallTestNio().test(remoteSession);
 	new MkdirsRemoteNio().test(remoteSession);
+		
 	new UploadFilesNio().test(remoteSession);	
 	new DownloadFilesNio().test(remoteSession);
 	new RenameFilesNio().test(remoteSession);
-	
+
 	// Filters
 	new BuiltInFilterTest().test(remoteSession);
 	
-
 	// Remote Files
 	new RemoteFileTest().test(remoteSession);
 	
@@ -120,28 +121,40 @@ public class TestRunnerConsoleNio {
 //	    httpProxy = new ProxyLoader().getProxy();
 //	}
 
-	HttpProxy httpProxy = new ProxyLoader().getProxy();
-	
+	ProxyLoader proxyLoader = new ProxyLoader();
+	Proxy proxy = proxyLoader.getProxy();
+	PasswordAuthentication passwordAuthentication = proxyLoader.getPasswordAuthentication();
 	HttpProtocolParameters httpProtocolParameters = new HttpProtocolParameters();
+	
+	if (TestParms.AWAKE_URL.startsWith("https:") && TestParms.AWAKE_URL.contains("localhost"))
+	{
+	    httpProtocolParameters.setAcceptAllSslCertificates(true);
+	}
+	
+	httpProtocolParameters.setCompressionOn(TestParms.COMPRESSION_ON);
 
 	while (true) {
 
 	    MessageDisplayer.display("new RemoteSession()...");
-	    RemoteSession remoteSession = new RemoteSession(
-		    TestParms.AWAKE_URL, TestParms.REMOTE_USER,
-		    TestParms.REMOTE_PASSWORD.toCharArray(), httpProxy,
+	    RemoteSession remoteSession = null;
+	    
+	    remoteSession = new RemoteSession(TestParms.AWAKE_URL,
+		    TestParms.REMOTE_USER,
+		    TestParms.REMOTE_PASSWORD.toCharArray(), proxy, passwordAuthentication,
 		    httpProtocolParameters);
 	   	    
 	    MessageDisplayer.display(new Date());
 	   
-	    Date begin = new Date(); 	    
+	    Date begin = new Date(); 
+	    long longBegin = System.currentTimeMillis();
 	    testAll(remoteSession);
 	    Date end = new Date();
-
+	    long longEnd = System.currentTimeMillis();
+	    
 	    MessageDisplayer.display("");
 	    MessageDisplayer.display("Begin: " + begin);
 	    MessageDisplayer.display("End  : " + end);
-
+	    MessageDisplayer.display("Elapsed  : " + (longEnd - longBegin));
 	    remoteSession.logoff();
 
 	    if (!TestParms.LOOP_MODE) {

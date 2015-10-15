@@ -36,7 +36,7 @@ public class DefaultHttpProxyDetectorTest {
 	System.out.println("proxy type    : "
 		+ defaultHttpProxyDetector.getType());
 	System.out.println("proxy hostname: "
-		+ defaultHttpProxyDetector.getAddress());
+		+ defaultHttpProxyDetector.getHostname());
 	System.out.println("proxy port    : "
 		+ defaultHttpProxyDetector.getPort());
     }

@@ -24,12 +24,12 @@
  */
 package org.kawanfw.file.examples.api.client;
 
+import java.net.InetSocketAddress;
 import java.net.Proxy;
 import java.net.ProxySelector;
 import java.net.URI;
 import java.util.List;
 
-import org.kawanfw.commons.api.client.HttpProxy;
 import org.kawanfw.file.api.client.RemoteSession;
 
 /**
@@ -58,13 +58,13 @@ public class ProxyHang {
 	String url = "http://www.acme.org:9090/ServerSqlManager";
 	String username = "login";
 	char[] password = "password".toCharArray();
-
-	HttpProxy proxy = new HttpProxy("127.0.0.1", 8080, "username",
-		"password");
-
+	
+	Proxy proxy = new Proxy(Proxy.Type.HTTP, new InetSocketAddress(
+		    "127.0.0.1", 8080));
+	    
 	// Code will hang!
 	RemoteSession remoteSession = new RemoteSession(url, username,
-		password, proxy);
+		password, proxy, null);
 	
     }
 

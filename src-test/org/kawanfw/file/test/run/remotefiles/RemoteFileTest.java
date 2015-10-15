@@ -202,7 +202,7 @@ public class RemoteFileTest {
 
     public static class TheFilenameFilter implements FilenameFilter {
 
-	@Override
+	//@Override
 	public boolean accept(File dir, String name) {
 	   
 	    if (name.contains("Mb"))
@@ -214,7 +214,7 @@ public class RemoteFileTest {
     
     public static class TheFileFilter implements FileFilter  {
 	    
-	@Override
+	//@Override
 	public boolean accept(File pathname) {
 	    	    		
 	    if (pathname.toString().contains(".txt"))

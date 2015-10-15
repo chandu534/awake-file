@@ -75,7 +75,7 @@ public class EngineUploadBigFilesNew {
     @Test
     public void test(RemoteSession remoteSession) throws Exception {
 
-	System.out.println(new Date() + "Uploading big files with engine...");
+	System.out.println(new Date() + " Uploading big files with engine...");
 	
 	Long totalLength = (long) 0;
 
@@ -90,7 +90,7 @@ public class EngineUploadBigFilesNew {
 
 	files = Arrays.asList(bigFiles);
 
-	System.out.println(new Date() + "Uploading big files with engine...");
+	System.out.println(new Date() + " Uploading big files with engine...");
 	Chrono chrono = new Chrono(new Date());
 
 	FileUploaderEngine fileUploaderEngine = new FileUploaderEngine(

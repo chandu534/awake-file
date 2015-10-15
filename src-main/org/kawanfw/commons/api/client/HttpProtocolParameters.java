@@ -24,10 +24,8 @@
  */
 package org.kawanfw.commons.api.client;
 
+import java.io.InputStream;
 import java.io.Serializable;
-import java.util.HashMap;
-import java.util.Map;
-import java.util.Set;
 
 import org.kawanfw.commons.json.HttpProtocolParametersGson;
 import org.kawanfw.commons.util.DefaultParms;
@@ -38,38 +36,34 @@ import org.kawanfw.file.api.client.RemoteOutputStream;
  * 
  * Allows to define some parameters for the session:
  * <ul>
- * <li>Buffer size when uploading files. Defaults to 20480 (20 Kb).</li>
- * <li>Buffer size when downloading files. Defaults to 20480 (20 Kb).</li>
- * <li>Maximum authorized length for a string for upload or download (in order
- * to avoid OutOfMemoryException on client and server side.) Defaults to 2097152
- * (2 Mb).</li>
- * <li>Boolean to say if client sides allows HTTPS call with all SSL
- * Certificates, including "invalid" or self-signed Certificates. defaults to
- * <code>true</code>.</li>
+ * <li>Timeout value, in milliseconds, to be used when opening a communications link with the remote server. Defaults to 0 (no timeout).</li>
+ * <li>Read timeout, in milliseconds, that specifies the timeout when reading from remote Input stream. Defaults to 0 (no timeout).</li>
  * <li>Password to use for encrypting all parameters request between and Host.</li>
  * <li>Boolean to say if Clob upload/download using character stream or ASCII
- * stream must be html encoded. Defaults to <code>true</code>.</li>
+ * stream must be html encoded. Defaults to <code>true</code>.</li
+ * <li>Boolean to say if http content must be compressed. Defaults to <code>false</code>.</li>
  * <li>Download chunk length to be used by
  * {@link RemoteInputStream}. Defaults to 10Mb. 0
  * means files are not chunked.</li>
  * <li>Upload chunk length to be used by
  * {@link RemoteOutputStream} Defaults to 3Mb. 0 means
  * files are not chunked.</li>
- * <li>The number of times an HttpClient method will be retried. Defaults to 3.</li>
+ * <li>Boolean to say if client sides allows HTTPS call with all SSL
+ * Certificates, including "invalid" or self-signed Certificates. Defaults to
+ * <code>false</code>.</li>
+ * <li>Buffer size when uploading files. Defaults to 4 Kb.</li>
+ * <li>Buffer size when downloading files. Defaults to 4 Kb.</li>
+ * <li>Maximum authorized length for a string for upload or download (in order
+ * to avoid {@code OutOfMemoryException} on client and server side.) Defaults to 2 Mb.</li>
  * </ul>
  * <p>
- * Allows also to store http protocol parameters that will be passed to the
- * underlying <code>DefaultHttpClient</code> class of the <a
- * href="http://hc.apache.org/httpcomponents-client-4.2.x">Jakarta HttpClient
- * 4.2</a> library.
- * <p>
- * Use this class to change the default values of the HttpClient library and
+ * Use this class to change the default values of the http session and
  * pass the created instance to <code>RemoteSession</code> or to the {@code info}
  * <code>Properties</code> when creating a <code>RemoteConnection</code> with
  * {@code DriverManager.getConnection(url, info)}.
  * <p>
  * For example, the following change the default connection timeout to 10
- * seconds and the default socket timeout to 60 seconds: 
+ * seconds and the default read timeout to 60 seconds: 
  * 
  * <blockquote><pre>
  * String url = "https://www.acme.org/ServerFileManager";
@@ -79,27 +73,22 @@ import org.kawanfw.file.api.client.RemoteOutputStream;
  * HttpProtocolParameters httpProtocolParameters = new HttpProtocolParameters();
  * &nbsp;
  * // Sets the timeout until a connection is established to 10 seconds
- * httpProtocolParameters.setHttpClientParameter(
- * "http.connection.timeout", new Integer(10 * 1000));
+ * httpProtocolParameters.setConnectTimeout(10);
  * &nbsp;
- * // Sets the socket timeout (SO_TIMEOUT) to 60 seconds
- * httpProtocolParameters.setHttpClientParameter("http.socket.timeout",
- * new Integer(60 * 1000));
+ * // Sets the read timeout to 60 seconds
+ * httpProtocolParameters.setReadTimeout(10);
  * &nbsp;        
  * // We will use no proxy
- * HttpProxy httpProxy = null;
+ * Proxy proxy = null;
+ * PasswordAuthentication passwordAuthentication = null;
  * &nbsp;        
  * RemoteSession remoteSession 
- * = new RemoteSession(url, username, password, httpProxy, httpProtocolParameters);
+ * = new RemoteSession(url, username, password, proxy, passwordAuthentication, httpProtocolParameters);
  * &nbsp;
  * // Etc.
  * 
  *  </pre></blockquote>
- * 
- * See <a href=
- * "http://hc.apache.org/httpcomponents-client-4.2.x/tutorial/html/fundamentals.html#d5e299"
- * >HttpClient 4.2 Tutorial</a> for more info on HTTP parameters.
- * 
+ *   
  * @author Nicolas de Pomereu
  * @since 1.0
  */
@@ -139,32 +128,35 @@ public class HttpProtocolParameters implements Serializable {
     private char[] encryptionPassword = null;
 
     /**
-     * The chunk length for {@link RemoteInputStream}.
+     * The chunk length in bytes for {@link RemoteInputStream}.
      * Defaults to 10Mb.
      */
     private long downloadChunkLength = DefaultParms.DEFAULT_DOWNLOAD_CHUNK_LENGTH;
 
     /**
-     * The chunk length for {@link RemoteOutputStream}.
+     * The chunk length in bytes for {@link RemoteOutputStream}.
      * Defaults to 3Mb.
      */
     private long uploadChunkLength = DefaultParms.DEFAULT_UPLOAD_CHUNK_LENGTH;
 
-    /** The number of times a method will be retried */
-    private int retryCount = DefaultParms.DEFAULT_RETRY_COUNT;
-
-    /** Hash map of HTTP parameters that this collection contains */
-    private Map<String, Object> httpClientParameters = null;
-
+    /** the HttpUrlConnection timeout. Defaults to 0. */
+    private int connectTimeout = 0;
+    
+    /** the HttpUrlConnection read timeout. Defaults to 0. */
+    private int readTimeout = 0;
+    
+    /** Says if we send an "Accept-Encoding" "gzip" to server */
+    private boolean compressionOn = DefaultParms.DEFAULT_COMPRESSION_ON;
+    
     /**
      * Constructor.
      */
     public HttpProtocolParameters() {
-	httpClientParameters = new HashMap<String, Object>();
+	
     }
 
     /**
-     * Returns the maximum authorized length for a string for upload or download
+     * Returns the maximum authorized length in bytes for a string for upload or download
      * (in order to avoid OutOfMemoryException on client and server side).
      * 
      * @return the maximum authorized length for a string for upload or download
@@ -174,7 +166,7 @@ public class HttpProtocolParameters implements Serializable {
     }
 
     /**
-     * Sets the maximum authorized length for a string for upload or download
+     * Sets the maximum authorized length in bytes for a string for upload or download
      * (in order to avoid OutOfMemoryException on client and server side).
      * 
      * @param maxLengthForString
@@ -186,38 +178,38 @@ public class HttpProtocolParameters implements Serializable {
     }
 
     /**
-     * Returns the buffer size when uploading files.
+     * Returns the buffer size in bytes when uploading files.
      * 
-     * @return the buffer size when uploading files
+     * @return the buffer size in bytes when uploading files
      */
     public int getUploadBufferSize() {
 	return this.uploadBufferSize;
     }
 
     /**
-     * Sets the buffer size when uploading files.
+     * Sets the buffer size in bytes when uploading files.
      * 
      * @param uploadBufferSize
-     *            the buffer size when uploading files
+     *            the buffer size in bytes when uploading files
      */
     public void setUploadBufferSize(int uploadBufferSize) {
 	this.uploadBufferSize = uploadBufferSize;
     }
 
     /**
-     * Returns the buffer size when downloading files.
+     * Returns the buffer size in bytes when downloading files.
      * 
-     * @return the buffer size when downloading files
+     * @return the buffer size in bytes when downloading files
      */
     public int getDownloadBufferSize() {
 	return this.downloadBufferSize;
     }
 
     /**
-     * Sets the buffer size when downloading files.
+     * Sets the buffer size in bytes when downloading files.
      * 
      * @param downloadBufferSize
-     *            the buffer size when downloading files to set
+     *            the buffer size in bytes when downloading files to set
      */
     public void setDownloadBufferSize(int downloadBufferSize) {
 	this.downloadBufferSize = downloadBufferSize;
@@ -286,30 +278,30 @@ public class HttpProtocolParameters implements Serializable {
     }
 
     /**
-     * Returns the chunk length used by
+     * Returns the chunk length in bytes used by
      * {@link RemoteOutputStream}. Defaults to 3Mb. 0
      * means files are not chunked.
      * 
-     * @return the chunk length to be used for file upload
+     * @return the chunk length in bytes to be used for file upload
      */
     public long getUploadChunkLength() {
 	return uploadChunkLength;
     }
 
     /**
-     * Sets the chunk length to be used by
+     * Sets the chunk length in bytes to be used by
      * {@link RemoteOutputStream}. 0 means files are not
      * chunked.
      * 
      * @param chunkLength
-     *            the chunk length to set for file upload
+     *            the chunk length in bytes to set for file upload
      */
     public void setUploadChunkLength(long chunkLength) {
 	this.uploadChunkLength = chunkLength;
     }
 
     /**
-     * Returns the chunk length used by
+     * Returns the chunk length in bytes used by
      * {@link RemoteInputStream}. Defaults to 10Mb. 0
      * means files are not chunked.
      * 
@@ -320,120 +312,99 @@ public class HttpProtocolParameters implements Serializable {
     }
 
     /**
-     * Sets the chunk length to be used by
+     * Sets the chunk length in bytes to be used by
      * {@link RemoteInputStream}. 0 means files are not
      * chunked.
      * 
      * @param chunkLength
-     *            the chunk length to set for file download
+     *            the chunk length in bytes to set for file download
      */
     public void setDownloadChunkLength(long chunkLength) {
 	this.downloadChunkLength = chunkLength;
     }
 
     /**
-     * Returns The number of times an HttpClient method will be retried.
-     * Defaults to 3. <br>
-     * see <a href=
-     * "https://hc.apache.org/httpcomponents-client-4.2.x/tutorial/html/fundamentals.html#d5e249"
-     * >HttpClient 4.2 Tutorial - Exception handling</a>.
-     * 
-     * @return The number of times an HttpClient method will be retried
+     * Returns setting for connect timeout.
+     * <p>
+     * 0 return implies that the option is disabled
+     * (i.e., timeout of infinity).
+     *
+     * @return an <code>int</code> that indicates the connect timeout
+     *         value in milliseconds
+     * @see #setConnectTimeout(int)
+     * @see #connect()
+     * @since 3.1
      */
-    public int getRetryCount() {
-	return retryCount;
+    public int getConnectTimeout() {
+        return connectTimeout;
     }
 
     /**
-     * Sets the number of times an HttpClient method will be retried. Defaults
-     * to 3. <br>
-     * See <a href=
-     * "https://hc.apache.org/httpcomponents-client-4.2.x/tutorial/html/fundamentals.html#d5e249"
-     * >HttpClient 4.2 Tutorial - Exception handling</a>.
+     * Sets a specified timeout value, in milliseconds, to be used when opening
+     * a communications link to the remote server. If the timeout expires before
+     * the connection can be established, a java.net.SocketTimeoutException is
+     * raised. A timeout of zero is interpreted as an infinite timeout.
      * 
-     * @param retryCount
-     *            the number of times an HttpClient method will be retried.
+     * @param timeout
+     *            an <code>int</code> that specifies the connect timeout value
+     *            in milliseconds
+     * @see #getConnectTimeout()
+     * @since 3.1
      */
-    public void setRetryCount(int retryCount) {
-	this.retryCount = retryCount;
+    public void setConnectTimeout(int connectTimeout) {
+        this.connectTimeout = connectTimeout;
+    }
+
+    
+    /**
+     * Returns setting for read timeout. 0 return implies that the
+     * option is disabled (i.e., timeout of infinity).
+     *
+     * @return an <code>int</code> that indicates the read timeout
+     *         value in milliseconds
+     *
+     * @see #setReadTimeout(int)
+     * @see InputStream#read()
+     * @since 3.1
+     */
+    public int getReadTimeout() {
+        return readTimeout;
     }
 
     /**
-     * Returns the HttpClient Parameters.
-     * 
-     * @return the HttpClient Parameters
+     * Sets the read timeout to a specified timeout, in
+     * milliseconds. A non-zero value specifies the timeout when
+     * reading from Input stream when a connection is established to the remote server.
+     * If the timeout expires before there is data available
+     * for read, a java.net.SocketTimeoutException is raised. A
+     * timeout of zero is interpreted as an infinite timeout.
+     *
+     * @param timeout an <code>int</code> that specifies the timeout
+     * value to be used in milliseconds
+     * @throws IllegalArgumentException if the timeout parameter is negative
+     *
+     * @see #getReadTimeout()
+     * @see InputStream#read()
+     * @since 3.1
      */
-    public Map<String, Object> getHttpClientParameters() {
-	return this.httpClientParameters;
+    public void setReadTimeout(int readTimeout) {
+        this.readTimeout = readTimeout;
     }
 
     /**
-     * Sets the HttpClient Parameters.
-     * 
-     * @param httpClientParameters
-     *            the HttpClient Parameters to set
+     * Says if http content is compressed
+     * @return {@code true} if compression is activated
      */
-    public void setHttpClientParameters(Map<String, Object> httpClientParameters) {
-	this.httpClientParameters = httpClientParameters;
+    public boolean isCompressionOn() {
+        return compressionOn;
     }
 
     /**
-     * Sets the value of this HttpClient Library parameter.
-     * 
-     * @param name
-     *            the parameter name
-     * @param value
-     *            the parameter value
-     * 
-     * @throws IllegalArgumentException
-     *             if name is null
+     * Says if http content is compressed
+     * @param compressionOn {@code true} if compression is activated, else {@code false}
      */
-    public synchronized void setHttpClientParameter(final String name,
-	    final Object value) {
-
-	if (name == null) {
-	    throw new IllegalArgumentException(
-		    "parameter name can not be null!");
-	}
-
-	this.httpClientParameters.put(name, value);
-    }
-
-    /**
-     * Gets the value of this HttpClient Library parameter.
-     * 
-     * @param name
-     *            the parameter name *
-     * @return the parameter value
-     * 
-     * @throws IllegalArgumentException
-     *             if name is null
-     */
-    public synchronized Object getHttpClientParameter(final String name) {
-
-	if (name == null) {
-	    throw new IllegalArgumentException(
-		    "parameter name can not be null!");
-	}
-
-	return this.httpClientParameters.get(name);
-    }
-
-    /**
-     * Returns the new parameters key set.
-     * 
-     * @return the new parameters key set.
-     * @see Map#keySet()
-     */
-    public synchronized Set<String> getHttpClientParameterNames() {
-	return this.httpClientParameters.keySet();
-    }
-
-    /**
-     * Removes all parameters from this collection.
-     */
-    public void clearHttpClientParameters() {
-	this.httpClientParameters.clear();
+    public void setCompressionOn(boolean compressionOn) {
+        this.compressionOn = compressionOn;
     }
 
     /**

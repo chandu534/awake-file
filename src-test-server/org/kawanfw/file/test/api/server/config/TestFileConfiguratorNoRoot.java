@@ -65,7 +65,7 @@ public class TestFileConfiguratorNoRoot extends DefaultFileConfigurator
 	
 	String content = "null";
 	try {
-	    FileUtils.writeStringToFile(ServerTestParms.FILE_CONFIGURATOR_TXT, content);
+	    FileUtils.writeStringToFile(TestFileConfigurator.FILE_CONFIGURATOR_TXT, content);
 	} catch (IOException e) {
 	    e.printStackTrace();
 	}

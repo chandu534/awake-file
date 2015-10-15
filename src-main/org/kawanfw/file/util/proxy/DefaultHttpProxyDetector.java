@@ -42,7 +42,7 @@ import java.util.List;
 public class DefaultHttpProxyDetector implements HttpProxyDetector {
 
     private String type = null;
-    private String address = null;
+    private String hostname = null;
     private int port = -1;
 
     /**
@@ -57,26 +57,25 @@ public class DefaultHttpProxyDetector implements HttpProxyDetector {
 	URI uri = null;
 
 	try {
-	    uri = new URI("http://www.yahoo.com/");
+	    uri = new URI("http://www.google.com/");
 	} catch (URISyntaxException e) {
 	    throw new IllegalArgumentException(e);
 	}
 
-	List<Proxy> l = ProxySelector.getDefault().select(uri);
+	List<Proxy> listProxy = ProxySelector.getDefault().select(uri);
 
-	for (Iterator<Proxy> iter = l.iterator(); iter.hasNext();) {
+	for (Iterator<Proxy> iter = listProxy.iterator(); iter.hasNext();) {
 
 	    Proxy proxy = (Proxy) iter.next();
-
 	    type = proxy.type().toString();
 
 	    InetSocketAddress addr = (InetSocketAddress) proxy.address();
 
 	    if (addr == null) {
-		address = null;
+		hostname = null;
 	    } else {
 
-		address = addr.getHostName();
+		hostname = addr.getHostName();
 		port = addr.getPort();
 
 	    }
@@ -91,10 +90,10 @@ public class DefaultHttpProxyDetector implements HttpProxyDetector {
     }
 
     /**
-     * @return the address
+     * @return the hostname
      */
-    public String getAddress() {
-	return address;
+    public String getHostname() {
+        return hostname;
     }
 
     /**
@@ -103,5 +102,6 @@ public class DefaultHttpProxyDetector implements HttpProxyDetector {
     public int getPort() {
 	return port;
     }
+    
 
 }

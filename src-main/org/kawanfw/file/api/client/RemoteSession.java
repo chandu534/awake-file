@@ -35,6 +35,8 @@ import java.io.InputStream;
 import java.io.OutputStream;
 import java.net.ConnectException;
 import java.net.MalformedURLException;
+import java.net.PasswordAuthentication;
+import java.net.Proxy;
 import java.net.SocketException;
 import java.net.URL;
 import java.net.UnknownHostException;
@@ -44,13 +46,12 @@ import java.util.logging.Level;
 
 import org.apache.commons.io.IOUtils;
 import org.apache.commons.lang3.StringUtils;
-import org.apache.http.message.BasicNameValuePair;
 import org.kawanfw.commons.api.client.HttpProtocolParameters;
-import org.kawanfw.commons.api.client.HttpProxy;
 import org.kawanfw.commons.api.client.InvalidLoginException;
 import org.kawanfw.commons.api.client.RemoteException;
 import org.kawanfw.commons.http.HttpTransfer;
-import org.kawanfw.commons.http.HttpTransferOne;
+import org.kawanfw.commons.http.HttpTransferUtil;
+import org.kawanfw.commons.http.SimpleNameValuePair;
 import org.kawanfw.commons.json.ListOfStringTransport;
 import org.kawanfw.commons.util.ClientLogger;
 import org.kawanfw.commons.util.FrameworkDebug;
@@ -154,8 +155,11 @@ public class RemoteSession implements Cloneable {
      */
     private String authenticationToken = null;
 
-    /** The Http Proxy instance */
-    private HttpProxy httpProxy = null;
+    /** Proxy to use with HttpUrlConnection */
+    private Proxy proxy = null;
+    
+    /** For authenticated proxy */
+    private PasswordAuthentication passwordAuthentication = null;    
 
     /** The Http Parameters instance */
     private HttpProtocolParameters httpProtocolParameters = null;
@@ -184,25 +188,31 @@ public class RemoteSession implements Cloneable {
      *            null for call() or downloadUrl())
      * @param authenticationToken
      *            the actual token of the Awake FILE session to clone
-     * @param httpProxy
-     *            the http proxy to use
+	* @param proxy
+     *            the proxy to use, null for direct access
+     * @param passwordAuthentication
+     *            the proxy credentials, null if proxy does not require authentication
      * @param httpProtocolParameters
      *            the http parameters to use
      * @param remoteJavaVersion 
      * 		 the Java version on remote server
      */
     private RemoteSession(String url, String username,
-	    String authenticationToken, HttpProxy httpProxy,
-	    HttpProtocolParameters httpProtocolParameters, String remoteJavaVersion) {
+	    String authenticationToken, Proxy proxy,
+	    PasswordAuthentication passwordAuthentication,
+
+	    HttpProtocolParameters httpProtocolParameters,
+	    String remoteJavaVersion) {
 	this.url = url;
 	this.username = username;
 	this.authenticationToken = authenticationToken;
-	this.httpProxy = httpProxy;
+	this.proxy = proxy;
+	this.passwordAuthentication = passwordAuthentication;
 	this.httpProtocolParameters = httpProtocolParameters;
 	this.remoteJavaVersion = remoteJavaVersion;
 
-	httpTransfer = new HttpTransferOne(url, httpProxy,
-		httpProtocolParameters);
+	httpTransfer = HttpTransferUtil.HttpTransferFactory(url, proxy,
+		passwordAuthentication, httpProtocolParameters);
     }
 
     /**
@@ -216,8 +226,11 @@ public class RemoteSession implements Cloneable {
      * @param password
      *            the user password for authentication on the Awake Server (may
      *            be null)
-     * @param httpProxy
-     *            the http proxy to use (null if none)
+     * @param proxy
+     *            the proxy to use, null for direct access
+     * @param passwordAuthentication
+     *            the proxy credentials, null if proxy does not require
+     *            authentication
      * @param httpProtocolParameters
      *            the http parameters to use (may be null)
      * 
@@ -247,7 +260,8 @@ public class RemoteSession implements Cloneable {
      *             for all other IO / Network / System Error
      */
     public RemoteSession(String url, String username, char[] password,
-	    HttpProxy httpProxy, HttpProtocolParameters httpProtocolParameters)
+	    Proxy proxy, PasswordAuthentication passwordAuthentication,
+	    HttpProtocolParameters httpProtocolParameters)
 	    throws MalformedURLException, UnknownHostException,
 	    ConnectException, SocketException, InvalidLoginException,
 	    RemoteException, SecurityException, IOException {
@@ -262,7 +276,8 @@ public class RemoteSession implements Cloneable {
 	this.username = username;
 	this.url = url;
 
-	this.httpProxy = httpProxy;
+	this.proxy = proxy;
+	this.passwordAuthentication = passwordAuthentication;
 	this.httpProtocolParameters = httpProtocolParameters;
 
 	// username & password may be null: for call()
@@ -271,9 +286,8 @@ public class RemoteSession implements Cloneable {
 	}
 
 	// Launch the Servlet
-	httpTransfer = new HttpTransferOne(url, httpProxy,
-		httpProtocolParameters);
-
+	httpTransfer = HttpTransferUtil.HttpTransferFactory(url, proxy, passwordAuthentication, httpProtocolParameters);
+	
 	// TestReload if SSL required by host
 	if (this.url.toLowerCase().startsWith("http://") && isForceHttps()) {
 	    throw new SecurityException(
@@ -284,13 +298,13 @@ public class RemoteSession implements Cloneable {
 	String passwordStr = new String(password);
 
 	// Prepare the request parameters
-	List<BasicNameValuePair> requestParams = new Vector<BasicNameValuePair>();
-	requestParams.add(new BasicNameValuePair(Parameter.TEST_CRYPTO,
+	List<SimpleNameValuePair> requestParams = new Vector<SimpleNameValuePair>();
+	requestParams.add(new SimpleNameValuePair(Parameter.TEST_CRYPTO,
 		Parameter.TEST_CRYPTO));
-	requestParams.add(new BasicNameValuePair(Parameter.ACTION,
+	requestParams.add(new SimpleNameValuePair(Parameter.ACTION,
 		Action.LOGIN_ACTION));
-	requestParams.add(new BasicNameValuePair(Parameter.USERNAME, username));
-	requestParams.add(new BasicNameValuePair(Parameter.PASSWORD,
+	requestParams.add(new SimpleNameValuePair(Parameter.USERNAME, username));
+	requestParams.add(new SimpleNameValuePair(Parameter.PASSWORD,
 		passwordStr));
 
 	httpTransfer.send(requestParams);
@@ -333,8 +347,10 @@ public class RemoteSession implements Cloneable {
      * @param password
      *            the user password for authentication on the Awake Server (may
      *            be null)
-     * @param httpProxy
-     *            the http proxy to use (null if none)
+	 * @param proxy
+     *            the proxy to use, null for direct access
+     * @param passwordAuthentication
+     *            the proxy credentials, null if proxy does not require authentication
      * 
      * @throws MalformedURLException
      *             if the url is malformed
@@ -361,11 +377,12 @@ public class RemoteSession implements Cloneable {
      *             for all other IO / Network / System Error
      */
     public RemoteSession(String url, String username, char[] password,
-	    HttpProxy httpProxy) throws MalformedURLException,
+		 Proxy proxy, 
+		 PasswordAuthentication passwordAuthentication) throws MalformedURLException,
 	    UnknownHostException, ConnectException, SocketException,
 	    InvalidLoginException, RemoteException, SecurityException,
 	    IOException {
-	this(url, username, password, httpProxy, null);
+	this(url, username, password, proxy, passwordAuthentication, null);
     }
 
     /**
@@ -444,12 +461,20 @@ public class RemoteSession implements Cloneable {
     }
 
     /**
-     * Returns the {@code HttpProxy} instance in use for this File Session.
+     * Returns the {@code Proxy} instance in use for this File Session.
      * 
-     * @return the {@code HttpProxy} instance in use for this File Session
+     * @return the {@code Proxy} instance in use for this File Session
      */
-    public HttpProxy getHttpProxy() {
-	return this.httpProxy;
+    public Proxy getProxy() {
+	return this.proxy;
+    }
+    
+    /**
+     * Returns the proxy credentials
+     * @return the proxy credentials
+     */
+    public PasswordAuthentication getPasswordAuthentication() {
+        return passwordAuthentication;
     }
 
     /**
@@ -581,17 +606,17 @@ public class RemoteSession implements Cloneable {
 	debug("jsonParamValues: " + jsonParamValues);
 
 	// Prepare the request parameters
-	List<BasicNameValuePair> requestParams = new Vector<BasicNameValuePair>();
-	requestParams.add(new BasicNameValuePair(Parameter.ACTION,
+	List<SimpleNameValuePair> requestParams = new Vector<SimpleNameValuePair>();
+	requestParams.add(new SimpleNameValuePair(Parameter.ACTION,
 		Action.CALL_ACTION_HTML_ENCODED));
-	requestParams.add(new BasicNameValuePair(Parameter.USERNAME, username));
-	requestParams.add(new BasicNameValuePair(Parameter.TOKEN,
+	requestParams.add(new SimpleNameValuePair(Parameter.USERNAME, username));
+	requestParams.add(new SimpleNameValuePair(Parameter.TOKEN,
 		authenticationToken));
-	requestParams.add(new BasicNameValuePair(Parameter.METHOD_NAME,
+	requestParams.add(new SimpleNameValuePair(Parameter.METHOD_NAME,
 		methodName));
-	requestParams.add(new BasicNameValuePair(Parameter.PARAMS_TYPES,
+	requestParams.add(new SimpleNameValuePair(Parameter.PARAMS_TYPES,
 		jsonParamTypes));
-	requestParams.add(new BasicNameValuePair(Parameter.PARAMS_VALUES,
+	requestParams.add(new SimpleNameValuePair(Parameter.PARAMS_VALUES,
 		jsonParamValues));
 
 	httpTransfer.send(requestParams);
@@ -671,14 +696,14 @@ public class RemoteSession implements Cloneable {
 	String jsonString = ListOfStringTransport.toJson(pathnames);
 
 	// Prepare the request parameters
-	List<BasicNameValuePair> requestParams = new Vector<BasicNameValuePair>();
-	requestParams.add(new BasicNameValuePair(Parameter.ACTION,
+	List<SimpleNameValuePair> requestParams = new Vector<SimpleNameValuePair>();
+	requestParams.add(new SimpleNameValuePair(Parameter.ACTION,
 		Action.GET_FILE_LENGTH_ACTION));
-	requestParams.add(new BasicNameValuePair(Parameter.USERNAME, username));
-	requestParams.add(new BasicNameValuePair(Parameter.TOKEN,
+	requestParams.add(new SimpleNameValuePair(Parameter.USERNAME, username));
+	requestParams.add(new SimpleNameValuePair(Parameter.TOKEN,
 		authenticationToken));
 	requestParams
-		.add(new BasicNameValuePair(Parameter.FILENAME, jsonString));
+		.add(new SimpleNameValuePair(Parameter.FILENAME, jsonString));
 
 	httpTransfer.send(requestParams);
 
@@ -951,11 +976,11 @@ public class RemoteSession implements Cloneable {
 	}
 	
 	// Prepare the request parameters
-	List<BasicNameValuePair> requestParams = new Vector<BasicNameValuePair>();
-	requestParams.add(new BasicNameValuePair(Parameter.ACTION,
+	List<SimpleNameValuePair> requestParams = new Vector<SimpleNameValuePair>();
+	requestParams.add(new SimpleNameValuePair(Parameter.ACTION,
 		Action.GET_JAVA_VERSION));
-	requestParams.add(new BasicNameValuePair(Parameter.USERNAME, username));
-	requestParams.add(new BasicNameValuePair(Parameter.TOKEN,
+	requestParams.add(new SimpleNameValuePair(Parameter.USERNAME, username));
+	requestParams.add(new SimpleNameValuePair(Parameter.TOKEN,
 		authenticationToken));
 
 	httpTransfer.send(requestParams);
@@ -982,7 +1007,7 @@ public class RemoteSession implements Cloneable {
     @Override
     public RemoteSession clone() {
 	RemoteSession remoteSession = new RemoteSession(this.url,
-		this.username, this.authenticationToken, this.httpProxy,
+		this.username, this.authenticationToken, this.proxy, this.passwordAuthentication,
 		this.httpProtocolParameters, this.remoteJavaVersion);
 	return remoteSession;
     }
@@ -1006,7 +1031,8 @@ public class RemoteSession implements Cloneable {
 	username = null;
 	authenticationToken = null;
 
-	httpProxy = null;
+	proxy = null;
+	passwordAuthentication = null;
 	httpProtocolParameters = null;
 
 	if (httpTransfer != null) {
@@ -1040,8 +1066,8 @@ public class RemoteSession implements Cloneable {
 	    ConnectException, RemoteException, SecurityException, IOException {
 
 	// Prepare the request parameters
-	List<BasicNameValuePair> requestParams = new Vector<BasicNameValuePair>();
-	requestParams.add(new BasicNameValuePair(Parameter.ACTION,
+	List<SimpleNameValuePair> requestParams = new Vector<SimpleNameValuePair>();
+	requestParams.add(new SimpleNameValuePair(Parameter.ACTION,
 		Action.BEFORE_LOGIN_ACTION));
 
 	httpTransfer.send(requestParams);
@@ -1159,19 +1185,19 @@ public class RemoteSession implements Cloneable {
 	debug("jsonParamValues: " + jsonParamValues);
 
 	// Prepare the request parameters
-	List<BasicNameValuePair> requestParams = new Vector<BasicNameValuePair>();
-	requestParams.add(new BasicNameValuePair(Parameter.ACTION,
+	List<SimpleNameValuePair> requestParams = new Vector<SimpleNameValuePair>();
+	requestParams.add(new SimpleNameValuePair(Parameter.ACTION,
 		Action.CALL_ACTION));
-	// requestParams.add(new BasicNameValuePair(Parameter.LOGIN,
+	// requestParams.add(new SimpleNameValuePair(Parameter.LOGIN,
 	// StringUtil.toBase64(username)));
-	requestParams.add(new BasicNameValuePair(Parameter.USERNAME, username));
-	requestParams.add(new BasicNameValuePair(Parameter.TOKEN,
+	requestParams.add(new SimpleNameValuePair(Parameter.USERNAME, username));
+	requestParams.add(new SimpleNameValuePair(Parameter.TOKEN,
 		authenticationToken));
-	requestParams.add(new BasicNameValuePair(Parameter.METHOD_NAME,
+	requestParams.add(new SimpleNameValuePair(Parameter.METHOD_NAME,
 		methodName));
-	requestParams.add(new BasicNameValuePair(Parameter.PARAMS_TYPES,
+	requestParams.add(new SimpleNameValuePair(Parameter.PARAMS_TYPES,
 		StringUtil.toBase64(jsonParamTypes)));
-	requestParams.add(new BasicNameValuePair(Parameter.PARAMS_VALUES,
+	requestParams.add(new SimpleNameValuePair(Parameter.PARAMS_VALUES,
 		StringUtil.toBase64(jsonParamValues)));
 
 	httpTransfer.send(requestParams);
@@ -1251,16 +1277,20 @@ public class RemoteSession implements Cloneable {
 	return true;
     }
 
-    /* (non-Javadoc)
+    
+    /*
+     * (non-Javadoc)
+     * 
      * @see java.lang.Object#toString()
      */
     @Override
     public String toString() {
 	return "RemoteSession [url=" + url + ", username=" + username
-		+ ", httpProxy=" + httpProxy + ", httpProtocolParameters="
+		+ ", proxy=" + proxy + ", passwordAuthentication="
+		+ passwordAuthentication + ", httpProtocolParameters="
 		+ httpProtocolParameters + "]";
     }
-    
+
     /**
      * debug tool
      */

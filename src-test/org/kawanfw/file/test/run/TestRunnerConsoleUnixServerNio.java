@@ -30,8 +30,7 @@ public class TestRunnerConsoleUnixServerNio {
 
     public static void main(String[] args) throws Exception {
 
-	TestParms.AWAKE_URL = "http://www.awake-file.org/awake-file/ServerFileManager";	
-	//TestParms.AWAKE_URL = "http://service.simplify.fr/awake-file/ServerFileManager";	
+	TestParms.AWAKE_URL = "http://www.awake-file.org/awake-file/ServerFileManager";		
 	TestRunnerConsoleNio.startIt();
     }
     

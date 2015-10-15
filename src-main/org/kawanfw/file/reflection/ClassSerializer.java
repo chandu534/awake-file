@@ -32,7 +32,6 @@ import java.io.ObjectOutputStream;
 
 import org.apache.commons.io.IOUtils;
 import org.kawanfw.commons.api.client.HttpProtocolParameters;
-import org.kawanfw.commons.api.client.HttpProxy;
 import org.kawanfw.commons.util.Base64;
 
 /**

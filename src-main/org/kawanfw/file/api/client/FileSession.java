@@ -30,6 +30,8 @@ import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.net.ConnectException;
 import java.net.MalformedURLException;
+import java.net.PasswordAuthentication;
+import java.net.Proxy;
 import java.net.SocketException;
 import java.net.UnknownHostException;
 import java.util.ArrayList;
@@ -39,11 +41,10 @@ import java.util.logging.Level;
 import org.apache.commons.io.filefilter.DirectoryFileFilter;
 import org.apache.commons.io.filefilter.FileFileFilter;
 import org.kawanfw.commons.api.client.HttpProtocolParameters;
-import org.kawanfw.commons.api.client.HttpProxy;
 import org.kawanfw.commons.api.client.InvalidLoginException;
 import org.kawanfw.commons.api.client.RemoteException;
 import org.kawanfw.commons.http.HttpTransfer;
-import org.kawanfw.commons.http.HttpTransferOne;
+import org.kawanfw.commons.http.HttpTransferUtil;
 import org.kawanfw.commons.util.ClientLogger;
 import org.kawanfw.commons.util.FrameworkDebug;
 import org.kawanfw.commons.util.Tag;
@@ -159,8 +160,11 @@ public class FileSession implements Cloneable {
      */
     private String authenticationToken = null;
 
-    /** The Http Proxy instance */
-    private HttpProxy httpProxy = null;
+    /** Proxy to use with HttpUrlConnection */
+    private Proxy proxy = null;
+    
+    /** For authenticated proxy */
+    private PasswordAuthentication passwordAuthentication = null;
 
     /** The Http Parameters instance */
     private HttpProtocolParameters httpProtocolParameters = null;
@@ -189,25 +193,28 @@ public class FileSession implements Cloneable {
      *            null for call() or downloadUrl())
      * @param authenticationToken
      *            the actual token of the Awake FILE session to clone
-     * @param httpProxy
-     *            the http proxy to use
+      * @param proxy
+     *            the proxy to use, null for direct access
+     * @param passwordAuthentication
+     *            the proxy credentials, null if proxy does not require authentication
      * @param httpProtocolParameters
      *            the http parameters to use
      * @param remoteSession
      *            the remote session to clone
      */
     private FileSession(String url, String username,
-	    String authenticationToken, HttpProxy httpProxy,
+	    String authenticationToken, Proxy proxy, 
+		 PasswordAuthentication passwordAuthentication,
 	    HttpProtocolParameters httpProtocolParameters,
 	    RemoteSession remoteSession) {
 	this.url = url;
 	this.username = username;
 	this.authenticationToken = authenticationToken;
-	this.httpProxy = httpProxy;
+	this.proxy = proxy;
+	this.passwordAuthentication = passwordAuthentication;
 	this.httpProtocolParameters = httpProtocolParameters;
 
-	httpTransfer = new HttpTransferOne(url, httpProxy,
-		httpProtocolParameters);
+	httpTransfer = HttpTransferUtil.HttpTransferFactory(url, proxy, passwordAuthentication, httpProtocolParameters);
 
 	this.remoteSession = remoteSession.clone();
     }
@@ -223,8 +230,10 @@ public class FileSession implements Cloneable {
      * @param password
      *            the user password for authentication on the Awake Server (may
      *            be null)
-     * @param httpProxy
-     *            the http proxy to use (null if none)
+     * @param proxy
+     *            the proxy to use, null for direct access
+     * @param passwordAuthentication
+     *            the proxy credentials, null if proxy does not require authentication
      * @param httpProtocolParameters
      *            the http parameters to use (may be null)
      * 
@@ -257,25 +266,26 @@ public class FileSession implements Cloneable {
      *             {@link RemoteSession#RemoteSession(String, String, char[])}
      */
     public FileSession(String url, String username, char[] password,
-	    HttpProxy httpProxy, HttpProtocolParameters httpProtocolParameters)
+	    Proxy proxy, PasswordAuthentication passwordAuthentication,
+	    HttpProtocolParameters httpProtocolParameters)
 	    throws MalformedURLException, UnknownHostException,
 	    ConnectException, SocketException, InvalidLoginException,
 	    RemoteException, SecurityException, IOException {
 
-	remoteSession = new RemoteSession(url, username, password, httpProxy,
+	remoteSession = new RemoteSession(url, username, password, proxy, passwordAuthentication,
 		httpProtocolParameters);
 
 	debug(remoteSession.toString());
 
 	// keep a copy of HttpTransfer than can not be accessed via
 	// RemoteSession because package protected
-	httpTransfer = new HttpTransferOne(url, httpProxy,
-		httpProtocolParameters);
+	httpTransfer = HttpTransferUtil.HttpTransferFactory(url, proxy, passwordAuthentication, httpProtocolParameters);
 
 	this.username = username;
 	this.url = url;
 
-	this.httpProxy = httpProxy;
+	this.proxy = proxy;
+	this.passwordAuthentication = passwordAuthentication;
 	this.httpProtocolParameters = httpProtocolParameters;
 
 	this.authenticationToken = remoteSession.getAuthenticationToken();
@@ -293,8 +303,10 @@ public class FileSession implements Cloneable {
      * @param password
      *            the user password for authentication on the Awake Server (may
      *            be null)
-     * @param httpProxy
-     *            the http proxy to use (null if none)
+     * @param proxy
+     *            the proxy to use, null for direct access
+     * @param passwordAuthentication
+     *            the proxy credentials, null if proxy does not require authentication
      * 
      * @throws MalformedURLException
      *             if the url is malformed
@@ -324,11 +336,11 @@ public class FileSession implements Cloneable {
      *             {@link RemoteSession#RemoteSession(String, String, char[], HttpProxy)}
      */
     public FileSession(String url, String username, char[] password,
-	    HttpProxy httpProxy) throws MalformedURLException,
-	    UnknownHostException, ConnectException, SocketException,
-	    InvalidLoginException, RemoteException, SecurityException,
-	    IOException {
-	this(url, username, password, httpProxy, null);
+	    Proxy proxy, PasswordAuthentication passwordAuthentication)
+	    throws MalformedURLException, UnknownHostException,
+	    ConnectException, SocketException, InvalidLoginException,
+	    RemoteException, SecurityException, IOException {
+	this(url, username, password, proxy, passwordAuthentication, null);
     }
 
     /**
@@ -421,12 +433,21 @@ public class FileSession implements Cloneable {
     }
 
     /**
-     * Returns the {@code HttpProxy} instance in use for this File Session.
+     * Returns the {@code Proxy} instance in use for this File Session.
      * 
-     * @return the {@code HttpProxy} instance in use for this File Session
+     * @return the {@code Proxy} instance in use for this File Session
      */
-    public HttpProxy getHttpProxy() {
-	return this.httpProxy;
+    public Proxy getProxy() {
+	return this.proxy;
+    }
+    
+    
+    /**
+     * Returns the proxy credentials
+     * @return the proxy credentials
+     */
+    public PasswordAuthentication getPasswordAuthentication() {
+        return passwordAuthentication;
     }
 
     /**
@@ -1137,7 +1158,7 @@ public class FileSession implements Cloneable {
     @Override
     public FileSession clone() {
 	FileSession fileSession = new FileSession(this.url, this.username,
-		this.authenticationToken, this.httpProxy,
+		this.authenticationToken, this.proxy, this.passwordAuthentication,
 		this.httpProtocolParameters, remoteSession);
 	return fileSession;
     }
@@ -1163,7 +1184,8 @@ public class FileSession implements Cloneable {
 	username = null;
 	authenticationToken = null;
 
-	httpProxy = null;
+	proxy = null;
+	passwordAuthentication = null;
 	httpProtocolParameters = null;
 
 	if (httpTransfer != null) {

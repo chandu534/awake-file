@@ -32,11 +32,18 @@ package org.kawanfw.file.util.proxy;
  */
 public interface HttpProxyDetector {
     /**
-     * @return the proxy Address
+     * @return the proxy Hostname
      */
-    public String getAddress();
+    public String getHostname();
+    
     /**
      * @return the proxy Port
      */
     public int getPort();
+    
+    /**
+     * @return the proxy type
+     */
+    public String getType();
+    
 }

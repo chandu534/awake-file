@@ -26,76 +26,69 @@ package org.kawanfw.commons.http;
 
 import java.io.BufferedOutputStream;
 import java.io.BufferedReader;
+import java.io.BufferedWriter;
 import java.io.ByteArrayOutputStream;
 import java.io.File;
-import java.io.FileInputStream;
 import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
 import java.io.FileReader;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
-import java.io.LineNumberReader;
 import java.io.OutputStream;
+import java.io.OutputStreamWriter;
 import java.io.StringReader;
-import java.lang.reflect.InvocationTargetException;
+import java.io.UnsupportedEncodingException;
+import java.io.Writer;
+import java.net.Authenticator;
 import java.net.ConnectException;
+import java.net.HttpURLConnection;
+import java.net.PasswordAuthentication;
+import java.net.Proxy;
 import java.net.URL;
+import java.net.URLEncoder;
 import java.net.UnknownHostException;
-import java.nio.charset.Charset;
-import java.sql.BatchUpdateException;
-import java.sql.SQLException;
+import java.security.KeyManagementException;
+import java.security.NoSuchAlgorithmException;
+import java.security.cert.X509Certificate;
 import java.util.Date;
 import java.util.List;
-import java.util.Set;
 import java.util.logging.Level;
+import java.util.zip.GZIPInputStream;
+
+import javax.net.ssl.HostnameVerifier;
+import javax.net.ssl.HttpsURLConnection;
+import javax.net.ssl.SSLContext;
+import javax.net.ssl.SSLSession;
+import javax.net.ssl.TrustManager;
+import javax.net.ssl.X509TrustManager;
 
 import org.apache.commons.io.FileUtils;
 import org.apache.commons.io.IOUtils;
-import org.apache.commons.lang3.StringUtils;
-import org.apache.http.HttpEntity;
-import org.apache.http.HttpHost;
-import org.apache.http.HttpResponse;
-import org.apache.http.HttpStatus;
-import org.apache.http.auth.AuthScope;
-import org.apache.http.auth.ChallengeState;
-import org.apache.http.auth.NTCredentials;
-import org.apache.http.auth.UsernamePasswordCredentials;
-import org.apache.http.client.AuthCache;
-import org.apache.http.client.HttpRequestRetryHandler;
-import org.apache.http.client.entity.UrlEncodedFormEntity;
-import org.apache.http.client.methods.HttpGet;
-import org.apache.http.client.methods.HttpPost;
-import org.apache.http.client.protocol.ClientContext;
-import org.apache.http.conn.params.ConnRoutePNames;
-import org.apache.http.entity.mime.HttpMultipartMode;
-import org.apache.http.entity.mime.MultipartEntity;
-import org.apache.http.entity.mime.content.StringBody;
-import org.apache.http.impl.auth.BasicScheme;
-import org.apache.http.impl.client.BasicAuthCache;
-import org.apache.http.impl.client.DefaultHttpClient;
-import org.apache.http.impl.client.DefaultHttpRequestRetryHandler;
-import org.apache.http.message.BasicNameValuePair;
-import org.apache.http.protocol.BasicHttpContext;
-import org.apache.http.util.EntityUtils;
 import org.kawanfw.commons.api.client.HttpProtocolParameters;
-import org.kawanfw.commons.api.client.HttpProxy;
 import org.kawanfw.commons.api.client.RemoteException;
 import org.kawanfw.commons.util.ClientLogger;
 import org.kawanfw.commons.util.DefaultParms;
 import org.kawanfw.commons.util.FrameworkDebug;
 import org.kawanfw.commons.util.FrameworkFileUtil;
-import org.kawanfw.commons.util.FrameworkSystemUtil;
-import org.kawanfw.commons.util.Tag;
 import org.kawanfw.commons.util.TransferStatus;
 
 /**
- * HttpTransferOne - Please note that in implementation, result is read in the
- * send method to be sure to release ASAP the server. <br>
+ * HttpTransferTwo - Http operations done without any library, only using
+ * HttpUrlConnection.
  * 
+ * Please note that in implementation, result is read in the send method to be
+ * sure to release ASAP the server. <br>
+ * 
+ * Note that HttpUrlConnection.disconect() is never call, see:
+ * http://kingori.co/minutae/2013/04/httpurlconnection-disconnect/
  */
 
 public class HttpTransferOne implements HttpTransfer {
+
+    private static final String GET = "GET";
+    private static final String POST = "POST";
+
     /** The debug flag */
     private static boolean DEBUG = FrameworkDebug.isSet(HttpTransferOne.class);
 
@@ -107,26 +100,11 @@ public class HttpTransferOne implements HttpTransfer {
     /** Response from http server container */
     private String m_responseBody = null;
 
-    /** The http client in use */
-    private DefaultHttpClient httpClient;
-
-    /** Target host. Will be passed to httpClient.execute */
-    private HttpHost targetHost = null;
-
-    /** The servlet path. Example "/ServerSqlManager */
-    private String servletPath = null;
-
-    /** Http context. Will be passed to httpClient.execute */
-    private BasicHttpContext localHttpContext;
-
     //
     // Server Parameter
     //
     /** The url to the main controler servlet session */
     private String url = null;
-
-    /** The Http Proxy instance */
-    private HttpProxy httpProxy = null;
 
     /** The Http Parameters instance */
     private HttpProtocolParameters httpProtocolParameters = null;
@@ -140,6 +118,20 @@ public class HttpTransferOne implements HttpTransfer {
     /** The Http Status code of the last send() */
     private int statusCode = 0;
 
+    /** The common HttpURLConnection use through all session */
+    private HttpURLConnection conn = null;
+
+    /** Connect Timeout to use */
+    private int connectTimeout = 0;
+
+    /** Read Timeout to use */
+    private int readTimeout = 0;
+
+    /** Proxy to use with HttpUrlConnection */
+    private Proxy proxy = null;
+    
+    /** For authenticated proxy */
+    private PasswordAuthentication passwordAuthentication = null;
 
     /**
      * Default constructor.&nbsp;
@@ -147,74 +139,75 @@ public class HttpTransferOne implements HttpTransfer {
      * 
      * @param url
      *            the URL path to the Sql Manager Servlet
-     * @param httpProxy
-     *            the proxy (may be null for default settings)
+     * @param proxy
+     *            the proxy to use, null for direct access
+     * @param passwordAuthentication
+     *            the proxy credentials, null if proxy does not require
+     *            authentication
      * @param httpProtocolParameters
      *            the http protocol supplementary parameters (may be null for
      *            default settings)
      */
-    public HttpTransferOne(String url, HttpProxy httpProxy,
+    public HttpTransferOne(String url, Proxy proxy,
+	    PasswordAuthentication passwordAuthentication,
 	    HttpProtocolParameters httpProtocolParameters) {
 
 	if (url == null) {
-	    throw new IllegalArgumentException("url can not be null!");
+	    throw new IllegalArgumentException("url is null!");
 	}
 
 	this.url = url;
-	this.httpProxy = httpProxy;
+	this.proxy = proxy;
+	this.passwordAuthentication = passwordAuthentication;
 	this.httpProtocolParameters = httpProtocolParameters;
 
-	debug("Before httpClient = new DefaultHttpClient()");
-	
-	httpClient = new DefaultHttpClient();
-	
-	debug("After setProxyAndProtocolParameters(httpClient)");
-	
-	int retryCount = DefaultParms.DEFAULT_RETRY_COUNT;
+
 	if (httpProtocolParameters != null) {
-	    retryCount = httpProtocolParameters.getRetryCount();
+	    this.connectTimeout = httpProtocolParameters.getConnectTimeout();
+	    this.readTimeout = httpProtocolParameters.getReadTimeout();
+
+	    if (httpProtocolParameters.isAcceptAllSslCertificates()) {
+		acceptSelfSignedSslCert();
+	    }
+
 	}
 
-	debug("After httpProtocolParameters.getRetryCount()");
-	
-	HttpRequestRetryHandler MyHttpRequestRetryHandler = new DefaultHttpRequestRetryHandler(
-		retryCount, false);
-	httpClient.setHttpRequestRetryHandler(MyHttpRequestRetryHandler);
+	setProxyCredentials();
 
-	debug("After httpClient.setHttpRequestRetryHandler(MyHttpRequestRetryHandler)");
-	
-	servletPath = HttpTransferOneUtil.getServletPathFromUrl(url);
+    }
 
-	String httpHost = url;
-	httpHost = StringUtils.substringBefore(url, servletPath);
+    /**
+     * Sets the proxy credentials
+     * 
+     */
+    private void setProxyCredentials() {
 
-	// debug("url        : " + url);
-	// debug("servletPath: " + servletPath);
-	// debug("httpHost   : " + httpHost);
-
-	HttpHostPartsExtractor httpHostPartsExtractor = new HttpHostPartsExtractor(
-		httpHost);
-	targetHost = new HttpHost(httpHostPartsExtractor.getHostName(),
-		httpHostPartsExtractor.getPort(),
-		httpHostPartsExtractor.getSchemeName());
-	
-	debug("After targetHost = new HttpHost()");
-
-	// debug("hostname: " + targetHost.getHostName());
-	// debug("port    : " + targetHost.getPort());
-	// debug("scheme  : " + targetHost.getSchemeName());
-
-	// Will fix later the necessary IOException wrapping
-
-	try {
-	    setProxyAndProtocolParameters(httpClient);
-	} catch (IOException e) {
-	    throw new IllegalArgumentException(e);
+	if (proxy == null) {
+	    try {
+		displayErrroMessageIfNoProxySet();
+	    } catch (Exception e) {
+		e.printStackTrace();
+	    }
+	    return;
 	}
-	
-	debug("After setProxyAndProtocolParameters(httpClient))");
-	
-	
+
+	// Sets the proxy
+	if (proxy != null) {
+
+	    if (passwordAuthentication != null) {
+		final String proxyAuthUsername = passwordAuthentication.getUserName();
+		final char [] proxyPassword = passwordAuthentication.getPassword();
+
+		Authenticator authenticator = new Authenticator() {
+
+		    public PasswordAuthentication getPasswordAuthentication() {
+			return new PasswordAuthentication(proxyAuthUsername, proxyPassword);
+		    }
+		};
+
+		Authenticator.setDefault(authenticator);
+	    }
+	}
     }
 
     /**
@@ -226,137 +219,19 @@ public class HttpTransferOne implements HttpTransfer {
      * @param httpProtocolParameters
      *            the http protocol supplementary parameters
      */
-    public HttpTransferOne(HttpProxy httpProxy,
+    public HttpTransferOne(Proxy proxy,
+	    PasswordAuthentication passwordAuthentication,
 	    HttpProtocolParameters httpProtocolParameters) {
-	this.httpProxy = httpProxy;
+	
+	this.proxy = proxy;
+	this.passwordAuthentication = passwordAuthentication;
 	this.httpProtocolParameters = httpProtocolParameters;
-    }
-
-    /**
-     * Set the proxy values for this session
-     * 
-     * @param httpClient
-     *            the Http Client instance
-     */
-    private void setProxyAndProtocolParameters(DefaultHttpClient httpClient)
-	    throws IOException {
-
-	// Say if we want to allow all certificates (including "bad" and
-	// self-signed)
-	if (httpProtocolParameters != null
-		&& httpProtocolParameters.isAcceptAllSslCertificates()
-		&& (url == null || url.toLowerCase().startsWith("https://"))
-		&& !FrameworkSystemUtil.isAndroid()) {
-	    HttpTransferOneUtil.acceptSelfSignedSslCert(httpClient);
-	}
 
 	if (httpProtocolParameters != null) {
-
-	    Set<String> httpParamaterNames = httpProtocolParameters
-		    .getHttpClientParameterNames();
-	    for (String parameter : httpParamaterNames) {
-		Object value = httpProtocolParameters
-			.getHttpClientParameter(parameter);
-
-		try {
-		    httpClient.getParams().setParameter(parameter, value);
-		} catch (Exception e) {
-
-		    String className = "unknown";
-		    try {
-			className = value.getClass().getName();
-		    } catch (Exception e1) {
-			ClientLogger.getLogger().log(Level.WARNING,
-				e1.toString());
-		    }
-
-		    throw new IllegalArgumentException(
-			    Tag.PRODUCT_USER_CONFIG_FAIL
-				    + " Impossible to call httpClient.getParams().setParameter(parameter, value) for parameter: "
-				    + parameter + " and value: " + value
-				    + " were value is of Java class: "
-				    + className);
-		}
-	    }
+	    this.connectTimeout = httpProtocolParameters.getConnectTimeout();
+	    this.readTimeout = httpProtocolParameters.getReadTimeout();
 	}
 
-	debug("Before if (httpProxy == null");
-	
-	// Reset proxy if null and return
-	if (httpProxy == null) {
-	    try {
-		displayErrroMessageIfNoProxySet();
-	    } catch (Exception e) {
-		e.printStackTrace();
-	    }
-	    return;
-	}
-	
-	debug("After if (httpProxy == null");
-
-	String httpProxyAddress = httpProxy.getAddress();
-	int httpProxyPort = httpProxy.getPort();
-	String httpProxyUsername = httpProxy.getUsername();
-	String httpProxyPassword = httpProxy.getPassword();
-
-	debug("httpProxyAddress : " + httpProxyAddress);
-	debug("httpProxyPort    : " + httpProxyPort);
-	debug("httpProxyUsername: " + httpProxyUsername);
-	debug("httpProxyPassword: " + httpProxyPassword);
-
-	if (httpProxyAddress != null && httpProxyAddress.length() > 0) {
-
-	    HttpHost proxy = new HttpHost(httpProxyAddress, httpProxyPort);
-	    httpClient.getParams().setParameter(ConnRoutePNames.DEFAULT_PROXY,
-		    proxy);
-
-	    if (httpProxyUsername == null || httpProxyUsername.isEmpty()) {
-		localHttpContext = new BasicHttpContext();
-	    } else {
-
-		// targetHost may be null if we use UrlSession API
-		if (targetHost != null) {
-		    // Create AuthCache instance
-		    AuthCache authCache = new BasicAuthCache();
-		    // Generate BASIC scheme object and add it to the local auth
-		    // cache
-
-		    BasicScheme basicAuthScheme = new BasicScheme(
-			    ChallengeState.PROXY);
-
-		    if (httpProxy.getWorkstation() == null) {
-			basicAuthScheme = new BasicScheme(ChallengeState.PROXY);
-		    } else {
-			basicAuthScheme = new BasicScheme(ChallengeState.TARGET);
-		    }
-
-		    authCache.put(targetHost, basicAuthScheme);
-
-		    localHttpContext = new BasicHttpContext();
-		    localHttpContext.setAttribute(ClientContext.AUTH_CACHE,
-			    authCache);
-		}
-
-		if (httpProxy.getWorkstation() != null) {
-
-		    String workstation = httpProxy.getWorkstation();
-		    String domain = httpProxy.getDomain();
-
-		    httpClient.getCredentialsProvider().setCredentials(
-			    new AuthScope(httpProxyAddress, httpProxyPort),
-			    new NTCredentials(httpProxyUsername,
-				    httpProxyPassword, workstation, domain));
-
-		} else {
-		    httpClient.getCredentialsProvider().setCredentials(
-			    new AuthScope(httpProxyAddress, httpProxyPort),
-			    new UsernamePasswordCredentials(httpProxyUsername,
-				    httpProxyPassword));
-		}
-
-	    }
-
-	}
     }
 
     /**
@@ -365,6 +240,38 @@ public class HttpTransferOne implements HttpTransfer {
     @Override
     public int getHttpStatusCode() {
 	return this.statusCode;
+    }
+
+    /**
+     * Builds the http URL connection from URL, with proxy if required.
+     * 
+     * @param url
+     *            the URL path to the Sql Manager Servlet
+     * @return the instance with proxy set if necessary
+     * @throws IOException
+     */
+    private HttpURLConnection buildHttpUrlConnection(URL url)
+	    throws IOException {
+	HttpURLConnection conn;
+
+	if (this.proxy == null) {
+	    conn = (HttpURLConnection) url.openConnection();
+	} else {
+	    conn = (HttpURLConnection) url.openConnection(proxy);
+	}
+
+	if (httpProtocolParameters != null) {
+	    boolean compressionOn = httpProtocolParameters.isCompressionOn();
+	    if (compressionOn) {
+		conn.setRequestProperty("Accept-Encoding", "gzip");
+	    }
+	}
+
+	conn.setConnectTimeout(connectTimeout);
+	conn.setReadTimeout(readTimeout);
+	conn.setUseCaches(false);
+
+	return conn;
     }
 
     /**
@@ -390,15 +297,47 @@ public class HttpTransferOne implements HttpTransfer {
      *             For all other IO / Network / System Error
      */
     @Override
-    public void send(List<BasicNameValuePair> requestParams)
+    public void send(List<SimpleNameValuePair> requestParams)
 	    throws UnknownHostException, ConnectException, RemoteException,
 	    IOException
 
     {
-	this.send(requestParams, (File) null);
+	statusCode = 0; // Reset it!
+	m_responseBody = null; // Reset it!
+
+	URL theUrl;
+	try {
+	    theUrl = new URL(this.url);
+
+	    conn = buildHttpUrlConnection(theUrl);
+	    conn.setRequestMethod(POST);
+	    conn.setDoOutput(true);
+
+	    // We need to Html convert & maybe encrypt the parameters
+	    SimpleNameValuePairConvertor simpleNameValuePairConvertor = new SimpleNameValuePairConvertor(
+		    requestParams, httpProtocolParameters);
+	    requestParams = simpleNameValuePairConvertor.convert();
+
+	    debug("requestParams: " + requestParams);
+
+	    OutputStream os = conn.getOutputStream();
+	    BufferedWriter writer = new BufferedWriter(new OutputStreamWriter(
+		    os, "UTF-8"));
+	    writer.write(getPostDataString(requestParams));
+
+	    // writer.flush();
+	    writer.close();
+	    os.close();
+
+	    getAndAnalyzeResponse(conn);
+
+	} finally {
+	    // Reset doReceiveInFile
+	    doReceiveInFile = false;
+	}
+
     }
 
-    
     /**
      * Sends a String to the HTTP server and uploads a File
      * 
@@ -424,141 +363,122 @@ public class HttpTransferOne implements HttpTransfer {
      *             For all other IO / Network / System Error
      */
     @Override
-    public void send(List<BasicNameValuePair> requestParams, File file)
+    public void send(List<SimpleNameValuePair> requestParams, File file)
 	    throws UnknownHostException, ConnectException, RemoteException,
 	    IOException {
+
 	statusCode = 0; // Reset it!
 	m_responseBody = null; // Reset it!
+	URL theUrl;
 
 	try {
+
 	    // We need to Html convert & maybe encrypt the parameters
-	    BasicNameValuePairConvertor basicNameValuePairConvertor = new BasicNameValuePairConvertor(
+	    SimpleNameValuePairConvertor simpleNameValuePairConvertor = new SimpleNameValuePairConvertor(
 		    requestParams, httpProtocolParameters);
-	    requestParams = basicNameValuePairConvertor.convert();
+	    requestParams = simpleNameValuePairConvertor.convert();
 
-	    // debug("requestParams       : " + requestParams);
-	    // debug("requestParams.length: " +
-	    // requestParams.toString().length());
+	    theUrl = new URL(this.url);
 
-	    HttpPost httpPost = new HttpPost(servletPath);
+	    conn = buildHttpUrlConnection(theUrl);
+	    conn.setRequestMethod(POST);
+	    conn.setDoOutput(true);
 
-	    if (file == null) {
-		httpPost.setEntity(new UrlEncodedFormEntity(requestParams,
-			"UTF-8"));
-	    } else {
+	    final MultipartUtility http = new MultipartUtility(theUrl, conn,
+		    httpProtocolParameters);
 
-		MultipartEntity multipartEntity = new MultipartEntity(
-			HttpMultipartMode.BROWSER_COMPATIBLE);
-
-		for (BasicNameValuePair basicNameValuePair : requestParams) {
-		    String paramName = basicNameValuePair.getName();
-		    String paramValue = basicNameValuePair.getValue();
-
-		    // For usual String parameters
-		    multipartEntity.addPart(paramName,
-			    new StringBody(paramValue.toString(), "text/plain",
-				    Charset.forName("UTF-8")));
-		}
-
-		debug("sending complete file with FileBodyForEngine");
-		// For File parameters
- 
-		//debug("useRemoteOutputStream: " + useRemoteOutputStream);
-		
-		multipartEntity.addPart("file",
-			new FileBodyForRemoteOutputStream(file,
-				"application/zip", httpProtocolParameters));
-		    
-		httpPost.setEntity(multipartEntity);
-
+	    for (SimpleNameValuePair basicNameValuePair : requestParams) {
+		http.addFormField(basicNameValuePair.getName(),
+			basicNameValuePair.getValue());
 	    }
 
-	    execute(httpPost);
+	    http.addFilePart("file", file);
+	    http.finish();
+
+	    HttpURLConnection httpUrlConnection = http.getConnection();
+	    getAndAnalyzeResponse(httpUrlConnection);
 
 	} finally {
-
 	    // Reset doReceiveInFile
 	    doReceiveInFile = false;
 	}
     }
 
     /**
-     * Execute the http post
+     * Get and analyze the response.
      * 
-     * @param httpPost
+     * @param conn
+     *            the URL connection in use
+     * 
      * @throws UnknownHostException
      * @throws ConnectException
      * @throws RemoteException
      * @throws IOException
      */
-    private void execute(HttpPost httpPost) throws UnknownHostException,
-	    ConnectException, RemoteException, IOException {
+    private void getAndAnalyzeResponse(HttpURLConnection conn)
+	    throws UnknownHostException, ConnectException, RemoteException,
+	    IOException {
 
-	BufferedReader bufferedReader = null;
-	HttpEntity entity = null;
-	File entityContentFile = null;
+	BufferedReader reader = null;
+	File contentFile = null;
 
 	try {
-	    // Execute the request
-	    HttpResponse response = httpClient.execute(targetHost, httpPost,
-		    localHttpContext);
-//
-//	    // Interrupted by user
-//	    if (transferProgressManager != null
-//		    && transferProgressManager.isCancelled()) {
-//		return;
-//	    }
 
-	    // Analyse the error after request execution
-	    statusCode = response.getStatusLine().getStatusCode();
+	    // Analyze the error after request execution
+	    statusCode = conn.getResponseCode();
 
-	    // Get hold of the response entity
-	    entity = response.getEntity();
-
-	    if (statusCode != HttpStatus.SC_OK) {
+	    if (statusCode != HttpURLConnection.HTTP_OK) {
 		// The server is up, but the servlet is not accessible
 		throw new ConnectException(url + ": Servlet failed: "
-			+ response.getStatusLine() + " status: " + statusCode);
+			+ conn.getResponseMessage() + " status: " + statusCode);
 	    }
 
-	    // Get immediately the content as input stream
-	    // do *NOT* use a buffered stream ==> Will fail with SSL handshakes!
-	    entityContentFile = createKawansoftTempFile();
+//	    //Get immediately the content as input stream
+//	    //do *NOT* use a buffered stream ==> Will fail with SSL handshakes!
+//	    contentFile = HttpTransferUtil.createKawansoftTempFile();
+//	    saveResponseContentToFile(contentFile, conn);
+//	    debug("contentFile: " + contentFile);
+//
+//	    // Read content of first line.
+//	    reader = new BufferedReader(new InputStreamReader(
+//		    new FileInputStream(contentFile)));
 
-	    saveEntityContentToFile(entityContentFile, entity);
-
-	    debug("entityContentFile: " + entityContentFile);
+	    // it's ok to use a buffered stream with SSL with HttpUrlConnection
+	    // Check the server sent us back a compressed content
+	    if ("gzip".equals(conn.getContentEncoding())) {
+		reader = new BufferedReader(new InputStreamReader(new GZIPInputStream(conn.getInputStream())));
+	    } else {
+		reader = new BufferedReader(new InputStreamReader(conn.getInputStream()));
+	    }
 	    
-	    // Read content of first line.
-	    bufferedReader = new BufferedReader(new InputStreamReader(
-		    new FileInputStream(entityContentFile)));
-
 	    // line 1: Contains the request status - line 2: Contains the datas
-	    String responseStatus = bufferedReader.readLine();
+	    String responseStatus = reader.readLine();
 	    // debug("responseStatus        : " + responseStatus);
 
 	    if (doReceiveInFile) {
 		// Content is saved back into a file, minus the first line
 		// status
-		receiveFile = createKawansoftTempFile();
-		copyResponseIntoFile(bufferedReader, receiveFile);
+		receiveFile = HttpTransferUtil.createKawansoftTempFile();
+		copyResponseIntoFile(reader, receiveFile);
 	    } else {
-		int maxLengthForString = DefaultParms.DEFAULT_MAX_LENGTH_FOR_STRING;
-		if (httpProtocolParameters != null) {
-		    maxLengthForString = httpProtocolParameters
-			    .getMaxLengthForString();
-		}
+		
+		// NO more length compute, result send by server is false or -1
+		
+//		int maxLengthForString = DefaultParms.DEFAULT_MAX_LENGTH_FOR_STRING;
+//		if (httpProtocolParameters != null) {
+//		    maxLengthForString = httpProtocolParameters
+//			    .getMaxLengthForString();
+//		}
+//		if (contentFile.length() > maxLengthForString) {
+//		    throw new IOException("Response too big for String: > "
+//			    + maxLengthForString + " bytes.");
+//		}
 
-		if (entityContentFile.length() > maxLengthForString) {
-		    throw new IOException("Response too big for String: > "
-			    + maxLengthForString + " bytes.");
-		}
-
-		copyResponseIntoString(bufferedReader);
+		copyResponseIntoString(reader);
 
 	    }
 
-	    // Analyse applicative response header
+	    // Analyze applicative response header
 	    // "SEND_OK"
 	    // "SEND_FAILED"
 
@@ -574,11 +494,13 @@ public class HttpTransferOne implements HttpTransfer {
 		    if (doReceiveInFile) {
 			bufferedReaderException = new BufferedReader(
 				new FileReader(receiveFile));
-			throwTheRemoteException(bufferedReaderException);
+			HttpTransferUtil
+				.throwTheRemoteException(bufferedReaderException);
 		    } else {
 			bufferedReaderException = new BufferedReader(
 				new StringReader(m_responseBody));
-			throwTheRemoteException(bufferedReaderException);
+			HttpTransferUtil
+				.throwTheRemoteException(bufferedReaderException);
 		    }
 		} finally {
 		    IOUtils.closeQuietly(bufferedReaderException);
@@ -599,182 +521,77 @@ public class HttpTransferOne implements HttpTransfer {
 			+ "This could also be a communication failure. Content of server response: "
 			+ CR_LF;
 
-		message += FileUtils.readFileToString(entityContentFile);
+		message += FileUtils.readFileToString(contentFile);
 		throw new IOException(message);
 	    }
 	} finally {
 
-	    if (entity != null) {
-		consume(entity);
-	    }
+	    IOUtils.closeQuietly(reader);
 
-	    IOUtils.closeQuietly(bufferedReader);
-	    
 	    if (!DEBUG) {
-		FileUtils.deleteQuietly(entityContentFile);
+		FileUtils.deleteQuietly(contentFile);
 	    }
 
 	}
 
     }
 
-    /**
-     * Wrapper for EntityUtils.consume(entity) that does not exist on Android
-     * 
-     * @param entity
-     * @throws IOException
-     */
-    private void consume(HttpEntity entity) throws IOException {
-	if (!FrameworkSystemUtil.isAndroid()) {
-	    EntityUtils.consume(entity);
-	}
-    }
+//    /**
+//     * Immediately Save the response content into file and release it
+//     * 
+//     * @param contentFile
+//     *            the file where to save the content
+//     * @param conn
+//     *            the HttpURLConnection instance
+//     * @throws IOException
+//     * @throws IllegalStateException
+//     * @throws FileNotFoundException
+//     */
+//    private void saveResponseContentToFile(File contentFile,
+//	    HttpURLConnection conn) throws IOException, IllegalStateException,
+//	    FileNotFoundException {
+//	InputStream in;
+//	in = conn.getInputStream();
+//	BufferedOutputStream out = new BufferedOutputStream(
+//		new FileOutputStream(contentFile));
+//
+//	try {
+//	    IOUtils.copy(in, out);
+//	} finally {
+//	    IOUtils.closeQuietly(in);
+//	    IOUtils.closeQuietly(out);
+//	}
+//    }
 
     /**
+     * Formats & URL encode the the post data for POST.
      * 
-     * Throws an Exception
-     * 
-     * @param bufferedReader
-     *            the reader that contains the remote thrown exception
-     * 
-     * @throws IOException
-     * @throws RemoteException
-     * @throws SecurityException
+     * @param params
+     *            the parameter names and values
+     * @return the formated and URL encoded string for the POST.
+     * @throws UnsupportedEncodingException
      */
-    public static void throwTheRemoteException(BufferedReader bufferedReader)
-	    throws RemoteException, IOException {
+    private String getPostDataString(List<SimpleNameValuePair> requestParams)
+	    throws UnsupportedEncodingException {
+	StringBuilder result = new StringBuilder();
+	boolean first = true;
 
-	String exceptionName = bufferedReader.readLine();
+	for (SimpleNameValuePair simpleNameValuePair : requestParams) {
+	    if (first)
+		first = false;
+	    else
+		result.append("&");
 
-	if (exceptionName.equals("null")) {
-	    exceptionName = null;
+	    if (simpleNameValuePair.getValue() != null) {
+		result.append(URLEncoder.encode(simpleNameValuePair.getName(),
+			"UTF-8"));
+		result.append("=");
+		result.append(URLEncoder.encode(simpleNameValuePair.getValue(),
+			"UTF-8"));
+	    }
 	}
 
-	if (exceptionName == null) {
-	    throw new IOException(
-		    Tag.PRODUCT_PRODUCT_FAIL
-			    + "Remote Exception type/name not found in servlet output stream");
-	}
-
-	String message = bufferedReader.readLine();
-
-	if (message.equals("null")) {
-	    message = null;
-	}
-
-	StringBuffer sb = new StringBuffer();
-
-	String line = null;
-	while ((line = bufferedReader.readLine()) != null) {
-	    // All subsequent lines contain the result
-	    sb.append(line);
-	    sb.append(CR_LF);
-	}
-
-	String remoteStackTrace = null;
-
-	if (sb.length() > 0) {
-	    remoteStackTrace = sb.toString();
-	}
-
-	//System.err.println("exceptionName: " + exceptionName);
-	
-	// Ok, build the authorized Exception
-	if (exceptionName.contains(Tag.ClassNotFoundException)) {
-	    throw new RemoteException(message, new ClassNotFoundException(
-		    message), remoteStackTrace);
-	} else if (exceptionName.contains(Tag.InstantiationException)) {
-	    throw new RemoteException(message, new InstantiationException(
-		    message), remoteStackTrace);
-	} else if (exceptionName.contains(Tag.NoSuchMethodException)) {
-	    throw new RemoteException(message, new NoSuchMethodException(
-		    message), remoteStackTrace);
-	} else if (exceptionName.contains(Tag.InvocationTargetException)) {
-	    throw new RemoteException(message, new InvocationTargetException(
-		    new Exception(message)), remoteStackTrace);
-	}
-	
-	// NIO case the uploaded .class file java version is incompatible with server java version
-	else if (exceptionName.contains(Tag.UnsupportedClassVersionError)) {
-	    throw new RemoteException(message, new UnsupportedClassVersionError(
-		    message), remoteStackTrace);
-	}
-	
-	//
-	// SQL Exceptions
-	//
-	else if (exceptionName.contains(Tag.SQLException)) {
-	    throw new RemoteException(message, new SQLException(message),
-		    remoteStackTrace);
-	} else if (exceptionName.contains(Tag.BatchUpdateException)) {
-	    throw new RemoteException(message, new BatchUpdateException(),
-		    remoteStackTrace);
-	}
-
-	//
-	// Security Failure
-	//
-	else if (exceptionName.contains(Tag.SecurityException)) {
-	    // throw new RemoteException(message, new
-	    // SecurityException(message), remoteStackTrace);
-	    throw new SecurityException(message);
-	}
-
-	//
-	// IOExceptions
-	//
-	else if (exceptionName.contains(Tag.FileNotFoundException)) {
-	    throw new RemoteException(message, new FileNotFoundException(
-		    message), remoteStackTrace);
-	} else if (exceptionName.contains(Tag.IOException)) {
-	    throw new RemoteException(message, new IOException(message),
-		    remoteStackTrace);
-	}
-	
-	//
-	// Server Failure: these errors should never be thrown by server :
-	// - NullPointerException
-	// - IllegalArgumentException
-	//
-	else if (exceptionName.contains(Tag.NullPointerException)) {
-	    throw new RemoteException(message,
-		    new NullPointerException(message), remoteStackTrace);
-	} else if (exceptionName.contains(Tag.IllegalArgumentException)) {
-	    throw new RemoteException(message, new IllegalArgumentException(
-		    message), remoteStackTrace);
-	} else {
-	    // All other cases ==> IOException with no cause
-	    throw new RemoteException("Remote " + exceptionName + ": "
-		    + message, new IOException(message), remoteStackTrace);
-	}
-
-    }
-
-    /**
-     * Immediately Save the entity content into file and release it
-     * 
-     * @param entityContentFile
-     *            the file where to save the entigy content
-     * @param entity
-     *            the http entity
-     * @throws IOException
-     * @throws IllegalStateException
-     * @throws FileNotFoundException
-     */
-    private void saveEntityContentToFile(File entityContentFile,
-	    HttpEntity entity) throws IOException, IllegalStateException,
-	    FileNotFoundException {
-	InputStream in;
-	in = entity.getContent();
-	BufferedOutputStream out = new BufferedOutputStream(
-		new FileOutputStream(entityContentFile));
-
-	try {
-	    IOUtils.copy(in, out);
-	} finally {
-	    IOUtils.closeQuietly(in);
-	    IOUtils.closeQuietly(out);
-	}
+	return result.toString();
     }
 
     /**
@@ -829,119 +646,6 @@ public class HttpTransferOne implements HttpTransfer {
     }
 
     /**
-     * Send a String to the HTTP server using receive httpServerProgram Servlet
-     * and download a file
-     * 
-     * @param requestParams
-     *            the request parameters list with (parameter, value)
-     * @param fileLength
-     *            the file length (for the progress indicator). If 0, will not
-     *            be used
-     * @param file
-     *            the file to create on the client side (PC)
-     * 
-     * @throws IllegalArgumentException
-     *             if the file to download is null
-     * @throws UnknownHostException
-     *             Host url (http://www.acme.org) does not exists or no Internet
-     *             Connection.
-     * @throws ConnectException
-     *             The Host is correct but the Servlet
-     *             (http://www.acme.org/Servlet) failed with a status <> OK
-     *             (200).
-     * @throws IOException
-     *             For all other IO / Network / System Error
-     */
-    /*
-    @Override
-    public void download(List<BasicNameValuePair> requestParams, File file)
-	    throws IllegalArgumentException, UnknownHostException,
-	    ConnectException, RemoteException, IOException {
-
-	if (file == null) {
-	    throw new IllegalArgumentException(
-		    "file to create can not be null!");
-	}
-
-	InputStream in = null;
-	OutputStream out = null;
-
-	try {
-	    // debug("before in = entity.getContent()");
-
-	    // Read the response body.
-	    // Do *NOT* use a buffered input stream ==> Will fail with SSL
-	    // handshakes!
-	    // in = new BufferedInputStream(entity.getContent()) ;
-
-	    in = getInputStream(requestParams);
-
-	    // debug("" + EntityUtils.toByteArray(entity).length);
-	    // debug("getContentLength: " + entity.getContentLength());
-	    // debug("streaming       : " + entity.isStreaming());
-	    // debug("isChunked       : " + entity.isChunked());
-	    // debug("isRepeatable    : " + entity.isRepeatable());
-
-	    out = new BufferedOutputStream(new FileOutputStream(file));
-
-	    int downloadBufferSize = DefaultParms.DEFAULT_DOWNLOAD_BUFFER_SIZE;
-
-	    if (httpProtocolParameters != null) {
-		downloadBufferSize = httpProtocolParameters
-			.getDownloadBufferSize();
-	    }
-
-	    byte[] buf = new byte[downloadBufferSize];
-	    int len;
-
-	    int tempLen = 0;
-	    // setOwnerNote(message);
-
-	    long filesLength = 0;
-	    if (transferProgressManager != null) {
-		filesLength = transferProgressManager.getLengthToTransfer();
-	    }
-
-	    while ((len = in.read(buf)) > 0) {
-		tempLen += len;
-
-		if (filesLength > 0
-			&& tempLen > filesLength / MAXIMUM_PROGRESS_100) {
-		    tempLen = 0;
-		    try {
-			Thread.sleep(10);
-		    } catch (InterruptedException e) {
-			e.printStackTrace();
-		    }
-		    addOneToTransferProgressManager(); // For ProgressMonitor
-						       // progress bar
-		}
-
-		if (isTransferProgressManagerInterrupted()) {
-		    throw new HttpTransferInterruptedException(Tag.PRODUCT
-			    + "File download interrupted by user.");
-		}
-
-		// totallen += len;
-		// debug("out.write(buf, 0, len); - totallen: " + totallen);
-
-		out.write(buf, 0, len);
-	    }
-
-	    // debug("before IOUtils.closeQuietly(out);");
-
-	    // Close now, we will reuse file in setStatusAfterDownload
-	    IOUtils.closeQuietly(out);
-
-	    // Sets the status after the file download
-	    analyseStatusAfterDownload(file);
-	} finally {
-	    IOUtils.closeQuietly(in);
-	    IOUtils.closeQuietly(out);
-	}
-    }
-
-    /**
      * Send a String to the HTTP server using servlet defined by url and return
      * the corresponding input stream
      * 
@@ -967,157 +671,59 @@ public class HttpTransferOne implements HttpTransfer {
      *             For all other IO / Network / System Error
      */
     @Override
-    public InputStream getInputStream(List<BasicNameValuePair> requestParams)
+    public InputStream getInputStream(List<SimpleNameValuePair> requestParams)
 	    throws IllegalArgumentException, UnknownHostException,
 	    ConnectException, RemoteException, IOException {
+
+	InputStream in = null;
 
 	statusCode = 0; // Reset it!
 	m_responseBody = null; // Reset it!
 
-	// DefaultHttpClient httpClient = null;
-	HttpPost httpPost = null;
+	URL theUrl;
+	theUrl = new URL(this.url);
 
-	InputStream in = null;
-	HttpEntity entity = null;
+	conn = buildHttpUrlConnection(theUrl);
+	conn.setRequestMethod(POST);
+	conn.setDoOutput(true);
 
-	// We need to Html convert & maybe encrypt the parameters
-	BasicNameValuePairConvertor basicNameValuePairConvertor = new BasicNameValuePairConvertor(
-		requestParams, httpProtocolParameters);
-	requestParams = basicNameValuePairConvertor.convert();
+	debug("requestParams: " + requestParams);
 
-	// Create an instance of HttpClient.
-	// httpClient = new DefaultHttpClient();
+	OutputStream os = conn.getOutputStream();
+	Writer writer = new BufferedWriter(new OutputStreamWriter(os, "UTF-8"));
+	writer.write(getPostDataString(requestParams));
 
-	// Set the Proxy & Socket Values
-	// setProxyAndProtocolParameters(httpClient);
+	// writer.flush();
+	writer.close();
+	os.close();
 
-	httpPost = new HttpPost(servletPath);
-	httpPost.setEntity(new UrlEncodedFormEntity(requestParams, "UTF-8"));
+	// Analyze the error after request execution
+	statusCode = conn.getResponseCode();
 
-	HttpResponse response = null;
-
-	// Execute the request and analyse the error
-	response = httpClient.execute(targetHost, httpPost, localHttpContext);
-	statusCode = response.getStatusLine().getStatusCode();
-
-	// Get hold of the response entity
-	entity = response.getEntity();
-
-	if (statusCode != HttpStatus.SC_OK) {
+	if (statusCode != HttpURLConnection.HTTP_OK) {
 	    // The server is up, but the servlet is not accessible
-	    throw new ConnectException(url + ": Servlet failed: "
-		    + response.getStatusLine() + " status: " + statusCode);
+	    throw new ConnectException(theUrl + ": Servlet failed: "
+		    + conn.getResponseMessage() + " status: " + statusCode);
 	}
 
-	debug("entity.isStreaming()  : " + entity.isStreaming());
-	debug("entity.isRepeatable() : " + entity.isRepeatable());
-
-	// debug("before in = entity.getContent()");
-	in = entity.getContent();
+	if ("gzip".equals(conn.getContentEncoding())) {
+	    in = new GZIPInputStream(conn.getInputStream());
+	} else {
+	    in = conn.getInputStream();
+	}
 
 	return in;
     }
 
     /**
-     * Closes the http client used for getInputStream
+     * Closes the url connection
      */
 
     @Override
     public void close() {
-	if (httpClient != null) {
-	    httpClient.getConnectionManager().shutdown();
+	if (this.conn != null) {
+	    this.conn.disconnect();
 	}
-    }
-
-    /**
-     * Sets the status after the file download
-     * 
-     * @param file
-     *            the downloaded file
-     */
-    /*
-    private void analyseStatusAfterDownload(File file) throws RemoteException,
-	    IOException {
-	LineNumberReader lineNumberReader = null;
-	InputStream in = null;
-
-	try {
-	    in = new BufferedInputStream(new FileInputStream(file));
-
-	    byte[] statusAsBytes = new byte[TransferStatus.SEND_OK.length()];
-	    int readBytes = in.read(statusAsBytes);
-
-	    String readStr = new String(statusAsBytes);
-
-	    // debug("readStr  : " + readStr);
-	    // debug("readBytes: " + readBytes);
-
-	    // Nothing to read (should not happen, except for empty files...)
-	    if (readBytes < TransferStatus.SEND_OK.length()) {
-		return;
-	    }
-
-	    // SEND_OK may happen if: 1) Invalid Login 2) FileNotFound
-
-	    if ((readStr != null) && readStr.startsWith(TransferStatus.SEND_OK)) {
-		IOUtils.closeQuietly(in);
-
-		BufferedReader bufferedReader = new BufferedReader(
-			new FileReader(file));
-
-		try {
-		    bufferedReader.readLine(); // Read The status line
-		    m_responseBody = bufferedReader.readLine();
-		    // debug("m_responseBody: " + m_responseBody);
-		} finally {
-		    IOUtils.closeQuietly(bufferedReader);
-
-		    if (!DEBUG) {
-			file.delete();
-		    }
-		}
-
-	    }
-	    // SEND_FAILED contains thrown Exceptions:
-	    else if ((readStr != null)
-		    && readStr.startsWith(TransferStatus.SEND_FAILED)) {
-		IOUtils.closeQuietly(in);
-
-		BufferedReader bufferedReaderException = new BufferedReader(
-			new FileReader(file));
-
-		try {
-		    throwTheRemoteException(bufferedReaderException);
-		} finally {
-		    IOUtils.closeQuietly(bufferedReaderException);
-
-		    if (!DEBUG) {
-			file.delete();
-		    }
-		}
-
-	    }
-
-	} finally {
-	    IOUtils.closeQuietly(in);
-	    IOUtils.closeQuietly(lineNumberReader);
-
-	}
-    }
-	*/
-    
-    /**
-     * Create our own Kawansoft temp file
-     * 
-     * @return the tempfile to create
-     */
-    public static synchronized File createKawansoftTempFile() {
-	String unique = FrameworkFileUtil.getUniqueId();
-	String tempDir = FrameworkFileUtil.getKawansoftTempDir();
-	String tempFile = tempDir + File.separator + "http-transfer-one-"
-		+ unique + ".kawanfw.txt";
-
-	return new File(tempFile);
     }
 
     /**
@@ -1156,45 +762,31 @@ public class HttpTransferOne implements HttpTransfer {
 	    throw new IllegalArgumentException("url can not be null!");
 	}
 
-	statusCode = 0; // Reset it!
-	DefaultHttpClient httpClient = null;
-	HttpGet httpget = null;
-
 	InputStream in = null;
 	OutputStream out = null;
 
-	LineNumberReader lineNumberReader = null;
+	statusCode = 0; // Reset it!
+	m_responseBody = null; // Reset it!
 
 	try {
-	    // Create an instance of HttpClient.
-	    httpClient = new DefaultHttpClient();
 
-	    // Set the Proxy & Socket Values
-	    setProxyAndProtocolParameters(httpClient);
+	    conn = buildHttpUrlConnection(url);
+	    conn.setRequestMethod(GET);
 
-	    httpget = new HttpGet(url.toString());
+	    // Analyze the error after request execution
+	    statusCode = conn.getResponseCode();
 
-	    HttpResponse response = null;
-	    HttpEntity entity = null;
-
-	    // Execute the request and analyse the error
-
-	    response = httpClient.execute(httpget);
-	    statusCode = response.getStatusLine().getStatusCode();
-
-	    // Get hold of the response entity
-	    entity = response.getEntity();
-
-	    if (statusCode != HttpStatus.SC_OK) {
-
-		throw new FileNotFoundException("URL not found: " + url
-			+ " status line: " + response.getStatusLine()
-			+ " status: " + statusCode);
-
+	    if (statusCode != HttpURLConnection.HTTP_OK) {
+		// The server is up, but the servlet is not accessible
+		throw new ConnectException(url + ": Servlet failed: "
+			+ conn.getResponseMessage() + " status: " + statusCode);
 	    }
-
-	    // Read the response body.
-	    in = entity.getContent();
+	    
+	    if ("gzip".equals(conn.getContentEncoding())) {
+		in = new GZIPInputStream(conn.getInputStream());
+	    } else {
+		in = conn.getInputStream();
+	    }
 
 	    // transferProgressManager.setLengthToTransfer(entity.getContentLength());
 
@@ -1202,13 +794,8 @@ public class HttpTransferOne implements HttpTransfer {
 
 	    byte[] buf = new byte[4096];
 	    int len;
-
 	    int tempLen = 0;
-
 	    long filesLength = 0;
-//	    if (transferProgressManager != null) {
-//		filesLength = transferProgressManager.getLengthToTransfer();
-//	    }
 
 	    while ((len = in.read(buf)) > 0) {
 		tempLen += len;
@@ -1222,29 +809,14 @@ public class HttpTransferOne implements HttpTransfer {
 			e.printStackTrace();
 		    }
 
-		    //addOneToTransferProgressManager(); // For ProgressMonitor
-						       // progress bar
 		}
-
-//		if (isTransferProgressManagerInterrupted()) {
-//		    throw new InterruptedException(Tag.PRODUCT
-//			    + "URL download interrupted by user.");
-//		}
 
 		out.write(buf, 0, len);
 	    }
 
-	    // We suppose the download is ok:
-	    // m_isSendOk = true;
-
 	} finally {
 	    IOUtils.closeQuietly(out);
 	    IOUtils.closeQuietly(in);
-	    IOUtils.closeQuietly(lineNumberReader);
-
-	    if (httpClient != null) {
-		httpClient.getConnectionManager().shutdown();
-	    }
 	}
 
     }
@@ -1276,41 +848,29 @@ public class HttpTransferOne implements HttpTransfer {
 	    throw new IllegalArgumentException("url can not be null!");
 	}
 
-	statusCode = 0; // Reset it!
-	DefaultHttpClient httpClient = null;
-	HttpGet httpget = null;
-
 	InputStream in = null;
+	statusCode = 0; // Reset it!
+	m_responseBody = null; // Reset it!
 
 	try {
-	    // Create an instance of HttpClient.
-	    httpClient = new DefaultHttpClient();
 
-	    // Set the Proxy & Socket Values
-	    setProxyAndProtocolParameters(httpClient);
+	    conn = buildHttpUrlConnection(url);
+	    conn.setRequestMethod(GET);
 
-	    httpget = new HttpGet(url.toString());
+	    // Analyze the error after request execution
+	    statusCode = conn.getResponseCode();
 
-	    HttpResponse response = null;
-	    HttpEntity entity = null;
-
-	    // Execute the request and analyze the error
-
-	    response = httpClient.execute(httpget);
-	    statusCode = response.getStatusLine().getStatusCode();
-
-	    // Get hold of the response entity
-	    entity = response.getEntity();
-
-	    if (statusCode != HttpStatus.SC_OK) {
-		throw new FileNotFoundException("URL not found: " + url
-			+ " status line: " + response.getStatusLine()
-			+ " status: " + statusCode);
-
+	    if (statusCode != HttpURLConnection.HTTP_OK) {
+		// The server is up, but the servlet is not accessible
+		throw new ConnectException(url + ": Servlet failed: "
+			+ conn.getResponseMessage() + " status: " + statusCode);
 	    }
 
-	    // Read the response body.
-	    in = entity.getContent();
+	    if ("gzip".equals(conn.getContentEncoding())) {
+		in = new GZIPInputStream(conn.getInputStream());
+	    } else {
+		in = conn.getInputStream();
+	    }
 
 	    int downloadBufferSize = DefaultParms.DEFAULT_DOWNLOAD_BUFFER_SIZE;
 	    int maxLengthForString = DefaultParms.DEFAULT_MAX_LENGTH_FOR_STRING;
@@ -1343,10 +903,53 @@ public class HttpTransferOne implements HttpTransfer {
 
 	} finally {
 	    IOUtils.closeQuietly(in);
+	}
 
-	    if (httpClient != null) {
-		httpClient.getConnectionManager().shutdown();
+    }
+
+    /**
+     * If called, self signed SSL certificates will be accepted
+     */
+    private void acceptSelfSignedSslCert() {
+	// Create a trust manager that does not validate certificate chains
+	TrustManager[] trustAllCerts = new TrustManager[] { new X509TrustManager() {
+	    public java.security.cert.X509Certificate[] getAcceptedIssuers() {
+		return null;
 	    }
+
+	    public void checkClientTrusted(X509Certificate[] certs,
+		    String authType) {
+	    }
+
+	    public void checkServerTrusted(X509Certificate[] certs,
+		    String authType) {
+	    }
+	} };
+
+	// Install the all-trusting trust manager
+	SSLContext sc = null;
+	try {
+	    sc = SSLContext.getInstance("SSL");
+
+	    sc.init(null, trustAllCerts, new java.security.SecureRandom());
+
+	    HttpsURLConnection
+		    .setDefaultSSLSocketFactory(sc.getSocketFactory());
+
+	    // Create all-trusting host name verifier
+	    HostnameVerifier allHostsValid = new HostnameVerifier() {
+		public boolean verify(String hostname, SSLSession session) {
+		    return true;
+		}
+	    };
+
+	    // Install the all-trusting host verifier
+	    HttpsURLConnection.setDefaultHostnameVerifier(allHostsValid);
+
+	} catch (NoSuchAlgorithmException e) {
+	    e.printStackTrace();
+	} catch (KeyManagementException e) {
+	    e.printStackTrace();
 	}
 
     }

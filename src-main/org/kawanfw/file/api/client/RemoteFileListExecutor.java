@@ -37,9 +37,9 @@ import java.util.Vector;
 import java.util.logging.Level;
 
 import org.apache.commons.io.FileUtils;
-import org.apache.http.message.BasicNameValuePair;
 import org.kawanfw.commons.api.client.InvalidLoginException;
 import org.kawanfw.commons.api.client.RemoteException;
+import org.kawanfw.commons.http.SimpleNameValuePair;
 import org.kawanfw.commons.util.ClientLogger;
 import org.kawanfw.commons.util.FrameworkDebug;
 import org.kawanfw.commons.util.FrameworkFileUtil;
@@ -148,23 +148,23 @@ class RemoteFileListExecutor extends RemoteFileExecutor {
 	// Launch the Servlet
 
 	// Prepare the request parameters
-	List<BasicNameValuePair> requestParams = new Vector<BasicNameValuePair>();
-	requestParams.add(new BasicNameValuePair(Parameter.ACTION,
+	List<SimpleNameValuePair> requestParams = new Vector<SimpleNameValuePair>();
+	requestParams.add(new SimpleNameValuePair(Parameter.ACTION,
 		Action.FILE_LIST_ACTION));
-	requestParams.add(new BasicNameValuePair(Parameter.USERNAME, username));
-	requestParams.add(new BasicNameValuePair(Parameter.TOKEN,
+	requestParams.add(new SimpleNameValuePair(Parameter.USERNAME, username));
+	requestParams.add(new SimpleNameValuePair(Parameter.TOKEN,
 		authenticationToken));
 	requestParams
-		.add(new BasicNameValuePair(Parameter.FILENAME, remoteFile));
+		.add(new SimpleNameValuePair(Parameter.FILENAME, remoteFile));
 
-	requestParams.add(new BasicNameValuePair(
+	requestParams.add(new SimpleNameValuePair(
 		Parameter.FILENAME_FILTER_CLASSNAME, filenameFilterClassname));
-	requestParams.add(new BasicNameValuePair(
+	requestParams.add(new SimpleNameValuePair(
 		Parameter.FILENAME_FILTER_FILENAME,
 		filenameFilterFilename));
 	
 	if (RemoteFileUtil.isFilterShortSize(base64SerialFilenameFilter)) {
-	    requestParams.add(new BasicNameValuePair(
+	    requestParams.add(new SimpleNameValuePair(
 		    Parameter.BASE64_SERIAL_FILENAME_FILTER,
 		    base64SerialFilenameFilter));
 	}
@@ -298,30 +298,30 @@ class RemoteFileListExecutor extends RemoteFileExecutor {
 	// Launch the Servlet
 
 	// Prepare the request parameters
-	List<BasicNameValuePair> requestParams = new Vector<BasicNameValuePair>();
-	requestParams.add(new BasicNameValuePair(Parameter.ACTION,
+	List<SimpleNameValuePair> requestParams = new Vector<SimpleNameValuePair>();
+	requestParams.add(new SimpleNameValuePair(Parameter.ACTION,
 		Action.FILE_LIST_FILES_ACTION));
-	requestParams.add(new BasicNameValuePair(Parameter.USERNAME, username));
-	requestParams.add(new BasicNameValuePair(Parameter.TOKEN,
+	requestParams.add(new SimpleNameValuePair(Parameter.USERNAME, username));
+	requestParams.add(new SimpleNameValuePair(Parameter.TOKEN,
 		authenticationToken));
 	requestParams
-		.add(new BasicNameValuePair(Parameter.FILENAME, remoteFile));
+		.add(new SimpleNameValuePair(Parameter.FILENAME, remoteFile));
 
-	requestParams.add(new BasicNameValuePair(
+	requestParams.add(new SimpleNameValuePair(
 		Parameter.FILENAME_FILTER_CLASSNAME, filenameFilterClassname));
-	requestParams.add(new BasicNameValuePair(
+	requestParams.add(new SimpleNameValuePair(
 		Parameter.FILENAME_FILTER_FILENAME,
 		filenameFilterFilename));
 	
 	if (RemoteFileUtil.isFilterShortSize(base64SerialFileFilter)) {
-	    requestParams.add(new BasicNameValuePair(
+	    requestParams.add(new SimpleNameValuePair(
 		    Parameter.BASE64_SERIAL_FILENAME_FILTER,
 		    base64SerialFilenameFilter));
 	}
 
-	requestParams.add(new BasicNameValuePair(
+	requestParams.add(new SimpleNameValuePair(
 		Parameter.FILE_FILTER_CLASSNAME, fileFilterClassname));
-	requestParams.add(new BasicNameValuePair(
+	requestParams.add(new SimpleNameValuePair(
 		Parameter.FILE_FILTER_FILENAME,
 		fileFilterFilename));
 	
@@ -329,7 +329,7 @@ class RemoteFileListExecutor extends RemoteFileExecutor {
 	
 	if (RemoteFileUtil.isFilterShortSize(base64SerialFileFilter)) {
 	    requestParams
-		    .add(new BasicNameValuePair(
+		    .add(new SimpleNameValuePair(
 			    Parameter.BASE64_SERIAL_FILE_FILTER,
 			    base64SerialFileFilter));
 	}

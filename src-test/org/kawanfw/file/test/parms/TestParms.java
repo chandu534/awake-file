@@ -25,8 +25,11 @@
 package org.kawanfw.file.test.parms;
 
 import java.io.File;
+import java.io.IOException;
 import java.lang.reflect.Method;
 
+import org.apache.commons.io.FileUtils;
+import org.apache.commons.lang3.StringUtils;
 import org.kawanfw.commons.util.FrameworkFileUtil;
 import org.kawanfw.commons.util.FrameworkSystemUtil;
 import org.kawanfw.commons.util.Tag;
@@ -42,7 +45,7 @@ import org.kawanfw.file.test.util.MessageDisplayer;
 public class TestParms {
              
     /** if true, a proxy will be used */
-    public static boolean USE_PROXY = false;
+    public static boolean USE_PROXY = true;
     
     /** if true, request will be encrypted */
     public static boolean USE_ENCRYPTION_PASSWORD = true;
@@ -52,6 +55,8 @@ public class TestParms {
     /** If true, The test will run in loop mode (to detect memory leaks) */
     public static boolean LOOP_MODE = false;
        
+    public static boolean COMPRESSION_ON = false;
+    
     /** Remote parameters */    
     public static String AWAKE_URL = "http://localhost:8080/awake-file/ServerFileManager";
     public static String REMOTE_USER = "username";
@@ -88,7 +93,7 @@ public class TestParms {
      * @return The first image file to use as blob for insert and select
      */
     public static File getFileFromUserHome(String imageFileName) {
-	
+		
 	String imageFileStr = FrameworkFileUtil.getUserHome() + File.separator
 		+ "kawanfw-test" + File.separator + imageFileName;
 
@@ -123,5 +128,43 @@ public class TestParms {
 	return new File(imageFileStr);
     }
 
+    public static File FILE_CONFIGURATOR_TXT = new File("c:\\.kawansoft\\FileConfigurator.txt");
 
+
+    /**
+     * Build the server root file from info dynamically stored in FILE_CONFIGURATOR_TXT
+     * @return
+     */
+    public static String getServerRootFromFile() {
+    
+        try {
+            String content = FileUtils.readFileToString(FILE_CONFIGURATOR_TXT);
+            
+            if (content == null || content.equals("null")) {
+        	return "c:\\";
+            }
+            
+            String root = StringUtils.substringBefore(content, "!");
+            String withUsername = StringUtils.substringAfter(content, "!");
+            
+            if (withUsername.equals("true")) {
+        	return root + File.separator + "username" + File.separator;
+            }
+            else {
+        	return root + File.separator;
+            }
+            
+            
+        } catch (IOException e) {
+            
+            e.printStackTrace();
+        }
+        
+        return null;
+    }
+
+    //public static String C_AWAKE_SERVER_ROOT_FILE_USERNAME = "C:\\.awake-server-root-file\\username\\";
+    public static String C_AWAKE_SERVER_ROOT_FILE_USERNAME = getServerRootFromFile();
+
+    
 }

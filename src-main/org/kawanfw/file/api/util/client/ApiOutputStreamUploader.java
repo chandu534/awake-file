@@ -34,10 +34,10 @@ import java.util.List;
 import java.util.Vector;
 import java.util.logging.Level;
 
-import org.apache.http.message.BasicNameValuePair;
 import org.kawanfw.commons.api.client.InvalidLoginException;
 import org.kawanfw.commons.api.client.RemoteException;
 import org.kawanfw.commons.http.HttpTransfer;
+import org.kawanfw.commons.http.SimpleNameValuePair;
 import org.kawanfw.commons.util.ClientLogger;
 import org.kawanfw.commons.util.FrameworkDebug;
 import org.kawanfw.file.util.parms.Action;
@@ -140,15 +140,15 @@ public class ApiOutputStreamUploader {
 	}
 
 	// Prepare the request parameters
-	List<BasicNameValuePair> requestParams = new Vector<BasicNameValuePair>();
-	requestParams.add(new BasicNameValuePair(Parameter.ACTION,
+	List<SimpleNameValuePair> requestParams = new Vector<SimpleNameValuePair>();
+	requestParams.add(new SimpleNameValuePair(Parameter.ACTION,
 		Action.UPLOAD_FILE_ACTION));
-	requestParams.add(new BasicNameValuePair(Parameter.USERNAME, username));
-	requestParams.add(new BasicNameValuePair(Parameter.TOKEN,
+	requestParams.add(new SimpleNameValuePair(Parameter.USERNAME, username));
+	requestParams.add(new SimpleNameValuePair(Parameter.TOKEN,
 		authenticationToken));
 	requestParams
-		.add(new BasicNameValuePair(Parameter.FILENAME, remoteFile));
-	requestParams.add(new BasicNameValuePair(Parameter.CHUNKLENGTH, ""
+		.add(new SimpleNameValuePair(Parameter.FILENAME, remoteFile));
+	requestParams.add(new SimpleNameValuePair(Parameter.CHUNKLENGTH, ""
 		+ chunkLength));
 
 	//debug("chunkLength  : " + chunkLength);

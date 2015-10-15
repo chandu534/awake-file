@@ -68,7 +68,7 @@ public class StaticFilterTest{
 
     public static class ThePublicStaticFileFilter implements FileFilter  {
 	    
-	@Override
+	//@Override
 	public boolean accept(File pathname) {
 	    	    		
 	    if (pathname.toString().contains(".jpg"))
@@ -80,7 +80,7 @@ public class StaticFilterTest{
     
     private static class ThePrivateStaticFileFilter implements FileFilter  {
 	    
-	@Override
+	//@Override
 	public boolean accept(File pathname) {
 	    	    		
 	    if (pathname.toString().contains(".jpg"))

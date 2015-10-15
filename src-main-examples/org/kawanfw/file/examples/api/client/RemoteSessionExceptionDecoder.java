@@ -26,12 +26,13 @@ package org.kawanfw.file.examples.api.client;
 
 import java.io.IOException;
 import java.net.ConnectException;
+import java.net.HttpURLConnection;
 import java.net.MalformedURLException;
+import java.net.PasswordAuthentication;
+import java.net.Proxy;
 import java.net.SocketException;
 import java.net.UnknownHostException;
 
-import org.apache.http.HttpStatus;
-import org.kawanfw.commons.api.client.HttpProxy;
 import org.kawanfw.commons.api.client.InvalidLoginException;
 import org.kawanfw.commons.api.client.RemoteException;
 import org.kawanfw.file.api.client.RemoteSession;
@@ -57,14 +58,17 @@ public class RemoteSessionExceptionDecoder {
      *            username
      * @param password
      *            password
-     * @param httpProxy
-     *            proxy to use
+	 * @param proxy
+     *            the proxy to use, null for direct access
+     * @param passwordAuthentication
+     *            the proxy credentials, null if proxy does not require authentication
      */
     public RemoteSessionExceptionDecoder(String url, String username,
-	    char[] password, HttpProxy httpProxy) {
+	    char[] password, Proxy proxy, PasswordAuthentication passwordAuthentication) {
 	try {
 	    // Create the file session to the remote server:
-	    remoteSession = new RemoteSession(url, username, password);
+	    remoteSession = new RemoteSession(url, username, password, proxy, 
+			  passwordAuthentication);
 	    System.out.println("Ok. RemoteSession created!");
 	} catch (Exception e) {
 	    System.out.println("Failed. Could not create RemoteSession");
@@ -102,7 +106,7 @@ public class RemoteSessionExceptionDecoder {
 	//
 
 	if (e instanceof ConnectException) {
-	    if (remoteSession.getHttpStatusCode() == HttpStatus.SC_PROXY_AUTHENTICATION_REQUIRED) // 407
+	    if (remoteSession.getHttpStatusCode() == HttpURLConnection.HTTP_PROXY_AUTH) // 407
 	    {
 		System.out.println("The proxy requires authentication.");
 	    } else {

@@ -40,7 +40,7 @@ public class TestRunnerConsoleWithBigFilesUnixServerNio {
      * @param args
      */
     public static void main(String[] args) throws Exception {
-	//TestParms.AWAKE_URL = "http://www.awake-file.org/awake-file/ServerFileManager";	
+	TestParms.AWAKE_URL = "https://www.aceql.com/awake-file/ServerFileManager";
 	TestParms.TEST_BIG_FILES = true;
 	TestRunnerConsoleNio.startIt();
     }

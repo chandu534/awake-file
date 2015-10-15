@@ -46,7 +46,6 @@ import org.kawanfw.file.api.client.RemoteInputStream;
 import org.kawanfw.file.api.client.RemoteSession;
 import org.kawanfw.file.api.util.client.ChunkUtil;
 import org.kawanfw.file.test.api.client.nio.streams.ShaComparator;
-import org.kawanfw.file.test.api.server.config.ServerTestParms;
 import org.kawanfw.file.test.parms.FileGenerator;
 import org.kawanfw.file.test.parms.TestParms;
 import org.kawanfw.file.test.util.Chrono;
@@ -97,7 +96,7 @@ public class InterruptRemoteInputStreamOneBigFile {
 	File bigFileClient = new File(FileGenerator.getHomeDirectory()
 		.toString() + File.separator + "333Mb.txt.DOWNLOAD.txt");
 	File bigFileServer = new File(
-		ServerTestParms.C_AWAKE_SERVER_ROOT_FILE_USERNAME + File.separator
+		TestParms.C_AWAKE_SERVER_ROOT_FILE_USERNAME + File.separator
 			+ "333Mb.txt");
 	
 	boolean delete = bigFileClient.delete();

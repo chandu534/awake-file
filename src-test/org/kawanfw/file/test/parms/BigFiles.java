@@ -29,7 +29,6 @@ import java.io.FileFilter;
 import java.util.Arrays;
 
 import org.apache.commons.io.comparator.SizeFileComparator;
-import org.kawanfw.file.test.api.server.config.ServerTestParms;
 
 /**
  * @author Nicolas de Pomereu
@@ -96,7 +95,7 @@ public class BigFiles {
 	    String name = files[i].getName();
 	    name = name.replace("Mb.txt", "Mb_2.txt");
 	    
-	    files_2[i] = new File(ServerTestParms.C_AWAKE_SERVER_ROOT_FILE_USERNAME + File.separator + name);
+	    files_2[i] = new File(TestParms.C_AWAKE_SERVER_ROOT_FILE_USERNAME + File.separator + name);
 	    
 	}
 	
@@ -142,7 +141,7 @@ public class BigFiles {
 		bigFilesWithHuge_2[i] = bigFiles_2[i];
 	    }
 	    else {
-		bigFilesWithHuge_2[i] = new File(ServerTestParms.C_AWAKE_SERVER_ROOT_FILE_USERNAME + File.separator + "photos-130711.zip");
+		bigFilesWithHuge_2[i] = new File(TestParms.C_AWAKE_SERVER_ROOT_FILE_USERNAME + File.separator + "photos-130711.zip");
 	    }
 	}
 	

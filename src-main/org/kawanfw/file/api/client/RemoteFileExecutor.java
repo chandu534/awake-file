@@ -32,10 +32,10 @@ import java.util.List;
 import java.util.Vector;
 import java.util.logging.Level;
 
-import org.apache.http.message.BasicNameValuePair;
 import org.kawanfw.commons.api.client.InvalidLoginException;
 import org.kawanfw.commons.api.client.RemoteException;
 import org.kawanfw.commons.http.HttpTransfer;
+import org.kawanfw.commons.http.SimpleNameValuePair;
 import org.kawanfw.commons.json.ListOfStringTransport;
 import org.kawanfw.commons.util.ClientLogger;
 import org.kawanfw.commons.util.FrameworkDebug;
@@ -205,19 +205,19 @@ class RemoteFileExecutor {
 	debug("jsonParamValues: " + jsonParamValues);
 
 	// Prepare the request parameters
-	List<BasicNameValuePair> requestParams = new Vector<BasicNameValuePair>();
-	requestParams.add(new BasicNameValuePair(Parameter.ACTION,
+	List<SimpleNameValuePair> requestParams = new Vector<SimpleNameValuePair>();
+	requestParams.add(new SimpleNameValuePair(Parameter.ACTION,
 		Action.FILE_METHOD_ONE_RETURN_ACTION));
-	requestParams.add(new BasicNameValuePair(Parameter.USERNAME, username));
-	requestParams.add(new BasicNameValuePair(Parameter.TOKEN,
+	requestParams.add(new SimpleNameValuePair(Parameter.USERNAME, username));
+	requestParams.add(new SimpleNameValuePair(Parameter.TOKEN,
 		authenticationToken));
 	requestParams
-		.add(new BasicNameValuePair(Parameter.FILENAME, pathname));
-	requestParams.add(new BasicNameValuePair(Parameter.METHOD_NAME,
+		.add(new SimpleNameValuePair(Parameter.FILENAME, pathname));
+	requestParams.add(new SimpleNameValuePair(Parameter.METHOD_NAME,
 		methodName));
-	requestParams.add(new BasicNameValuePair(Parameter.PARAMS_TYPES,
+	requestParams.add(new SimpleNameValuePair(Parameter.PARAMS_TYPES,
 		jsonParamTypes));
-	requestParams.add(new BasicNameValuePair(Parameter.PARAMS_VALUES,
+	requestParams.add(new SimpleNameValuePair(Parameter.PARAMS_VALUES,
 		jsonParamValues));
 
 	httpTransfer.send(requestParams);

@@ -28,12 +28,13 @@ import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileNotFoundException;
 import java.io.IOException;
+import java.io.InputStreamReader;
+import java.io.Reader;
+import java.net.HttpURLConnection;
+import java.net.URL;
 
-import org.kawanfw.file.api.client.RemoteFile;
-import org.kawanfw.file.api.client.RemoteSession;
 import org.kawanfw.file.api.util.client.JarReader;
 import org.kawanfw.file.reflection.ClassFileLocatorNew;
-import org.kawanfw.file.test.parms.TestParms;
 
 /**
  * @author Nicolas de Pomereu
@@ -62,18 +63,20 @@ public class Test {
      * @param args
      */
     public static void main(String[] args) throws Exception {
+	
+	URL url = new URL("https://www.aceql.com");
+	HttpURLConnection con = (HttpURLConnection) url.openConnection();
+	con.setRequestProperty("Accept-Encoding", "gzip");
+	System.out.println("Length : " + con.getContentLength());
 
-	File file = new File("c:\\test\\class.txt");
-	File file2 = new File("c:\\test\\class.txt");
-	System.out.println(file.compareTo(file2));
-	
-	RemoteSession remoteSession = new RemoteSession(
-		    TestParms.AWAKE_URL, TestParms.REMOTE_USER,
-		    TestParms.REMOTE_PASSWORD.toCharArray());
-	
-	RemoteFile remoteFile = new RemoteFile(remoteSession, "/class.txt");
-	RemoteFile remoteFile2 = new RemoteFile(remoteSession, "/class.txt");	    
-	System.out.println(remoteFile.compareTo(remoteFile2));	    
+	Reader reader = new InputStreamReader(con.getInputStream());
+	while (true) {
+	    int ch = reader.read();
+	    if (ch == -1) {
+		break;
+	    }
+	    System.out.print((char) ch);
+	} 
     }
 
     /**

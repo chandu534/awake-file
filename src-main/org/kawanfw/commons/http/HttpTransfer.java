@@ -33,7 +33,6 @@ import java.net.URL;
 import java.net.UnknownHostException;
 import java.util.List;
 
-import org.apache.http.message.BasicNameValuePair;
 import org.kawanfw.commons.api.client.RemoteException;
 
 /**
@@ -81,7 +80,7 @@ public interface HttpTransfer {
      * @throws IOException
      *             For all other IO / Network / System Error
      */
-    public void send(List<BasicNameValuePair> requestParams)
+    public void send(List<SimpleNameValuePair> requestParams)
 	    throws UnknownHostException, ConnectException,
 	    RemoteException, IOException;
 
@@ -108,40 +107,11 @@ public interface HttpTransfer {
      * @throws SecurityException
      *             if a security exception is raised
      */    
-    public void send(List<BasicNameValuePair> requestParams, File file)
+    public void send(List<SimpleNameValuePair> requestParams, File file)
 	    throws UnknownHostException, ConnectException,
 	    RemoteException, IOException;    
         
-    
-    /**
-     * Send a String to the HTTP server and download a file
-     * 
-     * @param requestParams
-     *            the request parameters list with (parameter, value)
-     * @param file
-     *            the file to download
-     * 
-     * @throws UnknownHostException
-     *             Host url (http://www.acme.org) does not exists or no Internet
-     *             Connection.
-     * @throws ConnectException
-     *             The Host is correct but the Servlet
-     *             (http://www.acme.org/Servlet) failed with a status <> OK
-     *             (200). (if the host is incorrect, or is impossible to connect
-     *             to- Tomcat down - will throw a sub exception
-     *             HttpHostConnectException)
-     * @throws IOException
-     *             For all other IO / Network / System Error
-     * @throws SecurityException
-     *             if a security exception is raised
-     */
-    /*
-    public void download(List<BasicNameValuePair> requestParams, File file)
-	    throws UnknownHostException, ConnectException,
-	    RemoteException,
-	    IOException;
-     */
-    
+        
     /**
      * Send a String to the HTTP server using servlet defined by url and return
      * the corresponding input stream
@@ -167,7 +137,7 @@ public interface HttpTransfer {
      * @throws IOException
      *             For all other IO / Network / System Error
      */
-    public InputStream getInputStream(List<BasicNameValuePair> requestParams)
+    public InputStream getInputStream(List<SimpleNameValuePair> requestParams)
 	    throws IllegalArgumentException, UnknownHostException,
 	    ConnectException, RemoteException, IOException;
 	

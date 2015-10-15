@@ -27,14 +27,15 @@ package org.kawanfw.file.api.client;
 import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.IOException;
+import java.net.PasswordAuthentication;
+import java.net.Proxy;
 import java.net.URL;
 import java.net.UnknownHostException;
 import java.util.logging.Level;
 
 import org.kawanfw.commons.api.client.HttpProtocolParameters;
-import org.kawanfw.commons.api.client.HttpProxy;
 import org.kawanfw.commons.http.HttpTransfer;
-import org.kawanfw.commons.http.HttpTransferOne;
+import org.kawanfw.commons.http.HttpTransferUtil;
 import org.kawanfw.commons.util.ClientLogger;
 import org.kawanfw.commons.util.FrameworkDebug;
 import org.kawanfw.file.version.FileVersion;
@@ -52,8 +53,12 @@ public class UrlSession {
     /** For debug info */
     private static boolean DEBUG = FrameworkDebug.isSet(UrlSession.class);
 
-    /** The Http Proxy instance */
-    private HttpProxy httpProxy = null;
+    /** Proxy to use with HttpUrlConnection */
+    private Proxy proxy = null;
+    
+    /** For authenticated proxy */
+    private PasswordAuthentication passwordAuthentication = null;    
+
 
     /** The http transfer instance */
     private HttpTransfer httpTransfer = null;
@@ -62,30 +67,39 @@ public class UrlSession {
      * Constructor that allows to define a proxy and protocol parameters.
      * <p>
      * 
-     * @param httpProxy
-     *            the http proxy to use
+     * @param proxy
+     *            the proxy to use, null for direct access
+     * @param passwordAuthentication
+     *            the proxy credentials, null if proxy does not require
+     *            authentication
+     * 
      * @param httpProtocolParameters
      *            the http parameters to use
      * 
      */
-    public UrlSession(HttpProxy httpProxy,
+    public UrlSession(Proxy proxy,
+	    PasswordAuthentication passwordAuthentication,
 	    HttpProtocolParameters httpProtocolParameters)
 	    throws IllegalArgumentException {
-	this.httpProxy = httpProxy;
-	httpTransfer = new HttpTransferOne(this.httpProxy,
-		httpProtocolParameters);	
+	this.proxy = proxy;
+	this.passwordAuthentication = passwordAuthentication;
+
+	httpTransfer = HttpTransferUtil.HttpTransferFactory(proxy,
+		passwordAuthentication, httpProtocolParameters);
     }
 
     /**
      * Constructor that allows to define a proxy.
      * <p>
      * 
-     * @param httpProxy
-     *            the http proxy to use
-     * 
+     * @param proxy
+     *            the proxy to use, null for direct access
+     * @param passwordAuthentication
+     *            the proxy credentials, null if proxy does not require
+     *            authentication
      */
-    public UrlSession(HttpProxy httpProxy) {
-	this(httpProxy, null);
+    public UrlSession(Proxy proxy, PasswordAuthentication passwordAuthentication) {
+	this(proxy, passwordAuthentication, null);
     }
 
     /**

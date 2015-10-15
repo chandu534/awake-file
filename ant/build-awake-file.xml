@@ -2,7 +2,7 @@
 	
 <project name="Buildfile for awake-filex.y.z jar" default="all" basedir=".">
     
-    <property name="version"          		value="3.0"/> 
+    <property name="version"          		value="3.1"/> 
 	
     <property name="awake-file.jar"          value="awake-file-${version}.jar"/>    	
     <property name="awake-file-android.jar"  value="awake-file-android-${version}.jar"/> 
@@ -12,6 +12,7 @@
 	<property name="awake-file-test.dir"   			value="I:\_dev_awake\awake-file-test\lib"/> 
 	<property name="awake-sql-test.dir"   			value="I:\_dev_awake\awake-sql-test\lib"/>       	
     <property name="awake-file-android-test.dir" 	value="I:\_dev_awake\awake-file-android-test\lib"/>  
+    <property name="awake-file-android-sample.dir" 	value="I:\_dev_awake\awake-file-android-sample\lib"/>  
     <property name="awake-sql-android-test.dir"  	value="I:\_dev_awake\awake-sql-android-test\lib"/>  
     	
     <property name="lib.dir"                 value="../lib"/> 
@@ -105,7 +106,11 @@
        <copy file="${dist.dir}/${awake-file-android.jar}" todir="${awake-file-android-test.dir}"/>
     </target>
     
-    <target name="copy.sql.android" depends="copy.file.android">
+    <target name="copy.file.android-2" depends="copy.file.android">
+       <copy file="${dist.dir}/${awake-file-android.jar}" todir="${awake-file-android-sample.dir}"/>
+    </target>
+    	
+    <target name="copy.sql.android" depends="copy.file.android-2">
        <copy file="${dist.dir}/${awake-file-android.jar}" todir="${awake-sql-android-test.dir}"/>
     </target>   
     	

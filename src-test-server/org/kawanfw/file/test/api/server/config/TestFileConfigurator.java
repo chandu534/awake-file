@@ -46,6 +46,8 @@ import org.kawanfw.file.api.server.FileConfigurator;
 public class TestFileConfigurator extends DefaultFileConfigurator
 	implements FileConfigurator {
 
+    public static File FILE_CONFIGURATOR_TXT = new File("c:\\.kawansoft\\FileConfigurator.txt");
+    
     /** Debug info */
     private static boolean DEBUG = FrameworkDebug
 	    .isSet(TestFileConfigurator.class);
@@ -67,7 +69,7 @@ public class TestFileConfigurator extends DefaultFileConfigurator
 	
 	String content = root + "!" + true;
 	try {
-	    FileUtils.writeStringToFile(ServerTestParms.FILE_CONFIGURATOR_TXT, content);
+	    FileUtils.writeStringToFile(TestFileConfigurator.FILE_CONFIGURATOR_TXT, content);
 	} catch (IOException e) {
 	    e.printStackTrace();
 	}

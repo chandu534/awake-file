@@ -29,7 +29,6 @@ import java.util.List;
 import java.util.Vector;
 import java.util.logging.Level;
 
-import org.apache.http.message.BasicNameValuePair;
 import org.kawanfw.commons.api.client.HttpProtocolParameters;
 import org.kawanfw.commons.util.ClientLogger;
 import org.kawanfw.commons.util.FrameworkDebug;
@@ -38,13 +37,13 @@ import org.kawanfw.commons.util.convert.Pbe;
 import org.kawanfw.file.util.parms.Parameter;
 import org.kawanfw.file.version.FileVersionValues;
 
-public class BasicNameValuePairConvertor {
+public class SimpleNameValuePairConvertor {
     /** Debug flag */
     private static boolean DEBUG = FrameworkDebug
-	    .isSet(BasicNameValuePairConvertor.class);
+	    .isSet(SimpleNameValuePairConvertor.class);
 
     /** The request params */
-    private List<BasicNameValuePair> requestParams = null;
+    private List<SimpleNameValuePair> requestParams = null;
 
     /** The http protocol parameters */
     private HttpProtocolParameters httpProtocolParameters = null;
@@ -53,9 +52,9 @@ public class BasicNameValuePairConvertor {
      * Constructor
      * 
      * @param requestParams
-     *            the request parameters list of BasicNameValuePair
+     *            the request parameters list of SimpleNameValuePair
      */
-    public BasicNameValuePairConvertor(List<BasicNameValuePair> requestParams, 
+    public SimpleNameValuePairConvertor(List<SimpleNameValuePair> requestParams, 
 	    	HttpProtocolParameters httpProtocolParameters) {
 	this.requestParams = requestParams;
 	this.httpProtocolParameters = httpProtocolParameters;
@@ -64,12 +63,12 @@ public class BasicNameValuePairConvertor {
     /**
      * @return the convert & may be encrypted parameters
      */
-    public List<BasicNameValuePair> convert() throws IOException {
-	List<BasicNameValuePair> requestParamsConverted = new Vector<BasicNameValuePair>();
+    public List<SimpleNameValuePair> convert() throws IOException {
+	List<SimpleNameValuePair> requestParamsConverted = new Vector<SimpleNameValuePair>();
 
-	for (BasicNameValuePair basicNameValuePair : requestParams) {
-	    String paramName = basicNameValuePair.getName();	    
-	    String paramValue = basicNameValuePair.getValue();
+	for (SimpleNameValuePair simpleNameValuePair : requestParams) {
+	    String paramName = simpleNameValuePair.getName();	    
+	    String paramValue = simpleNameValuePair.getValue();
 
 	    // Don't do it for STATEMENT_HOLDER ==> already has it's own Html
 	    // conversion and encryption
@@ -82,13 +81,13 @@ public class BasicNameValuePairConvertor {
 	    debug("converted param name : " + paramName);
 	    debug("converted param value: " + paramValue);
 
-	    BasicNameValuePair basicNameValuePairEnc = new BasicNameValuePair(
+	    SimpleNameValuePair simpleNameValuePairEnc = new SimpleNameValuePair(
 		    paramName, paramValue);
-	    requestParamsConverted.add(basicNameValuePairEnc);
+	    requestParamsConverted.add(simpleNameValuePairEnc);
 	}
 	
 	// Add the Version
-	BasicNameValuePair basicNameValuePairEnc = new BasicNameValuePair(
+	SimpleNameValuePair basicNameValuePairEnc = new SimpleNameValuePair(
 		Parameter.VERSION, FileVersionValues.VERSION);
 	requestParamsConverted.add(basicNameValuePairEnc);
 

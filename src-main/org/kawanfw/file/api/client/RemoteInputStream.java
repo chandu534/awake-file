@@ -42,7 +42,7 @@ import org.apache.commons.io.FileUtils;
 import org.kawanfw.commons.api.client.HttpProtocolParameters;
 import org.kawanfw.commons.api.client.InvalidLoginException;
 import org.kawanfw.commons.api.client.RemoteException;
-import org.kawanfw.commons.http.HttpTransferOne;
+import org.kawanfw.commons.http.HttpTransferUtil;
 import org.kawanfw.commons.util.ClientLogger;
 import org.kawanfw.commons.util.DefaultParms;
 import org.kawanfw.commons.util.FrameworkDebug;
@@ -571,7 +571,7 @@ public class RemoteInputStream extends InputStream {
 		String content = getContentAsString(in, beginString);
 
 		StringReader stringReader = new StringReader(content);
-		HttpTransferOne.throwTheRemoteException(new BufferedReader(
+		HttpTransferUtil.throwTheRemoteException(new BufferedReader(
 			stringReader));
 	    } else {
 		continueInputStreamStartAnalysis = false;

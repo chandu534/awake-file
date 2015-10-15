@@ -28,6 +28,6 @@ package org.kawanfw.file.version;
  */
 
 public class FileVersionValues {
-    public static final String VERSION = "v3.0";
-    public static final String DATE = "26-mars-2015";
+    public static final String VERSION = "v3.1";
+    public static final String DATE = "15-oct-2015";
 }

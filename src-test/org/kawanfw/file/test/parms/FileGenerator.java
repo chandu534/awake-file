@@ -124,24 +124,24 @@ public class FileGenerator {
 	System.out.println("Delete directories...");
 	initDeleteLocalDirectories();
 	
-//	System.out.println("HomeDirectory: " + getHomeDirectory());
-//	
-//	// 0
-//	// 1 Mb
-//	// 2 Mb
-//	// 2,5 Mb
-//	// 3Mb
-//	// 9 Mb
-//	// 10Mb
-//	// 11 Mb
-//	// 33Mb
-//	// 1OO Mb
-//	// 150 Mb
-//	// 333Mb
-//	
-//	long [] lengths = {0, 1, 2, 2,5, 3, 9, 10, 11, 33, 100, 150, 333};
-//	generate(lengths);
-//	System.out.println("new Date() + Done!");
+	System.out.println("HomeDirectory: " + getHomeDirectory());
+	
+	// 0
+	// 1 Mb
+	// 2 Mb
+	// 2,5 Mb
+	// 3Mb
+	// 9 Mb
+	// 10Mb
+	// 11 Mb
+	// 33Mb
+	// 1OO Mb
+	// 150 Mb
+	// 333Mb
+	
+	long [] lengths = {0, 1, 2, 2,5, 3, 9, 10, 11, 33, 100, 150, 333};
+	generate(lengths);
+	System.out.println("new Date() + Done!");
 
     }
 

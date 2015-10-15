@@ -25,6 +25,8 @@
 package org.kawanfw.file.test.run;
 
 import java.io.File;
+import java.net.PasswordAuthentication;
+import java.net.Proxy;
 import java.net.URL;
 import java.sql.SQLException;
 import java.util.Date;
@@ -33,7 +35,6 @@ import java.util.List;
 import org.apache.commons.io.FileUtils;
 import org.apache.commons.lang3.SystemUtils;
 import org.kawanfw.commons.api.client.HttpProtocolParameters;
-import org.kawanfw.commons.api.client.HttpProxy;
 import org.kawanfw.commons.util.FrameworkFileUtil;
 import org.kawanfw.file.api.client.FileSession;
 import org.kawanfw.file.api.client.UrlSession;
@@ -100,20 +101,23 @@ public class TestRunnerConsole {
 //	    httpProxy = new ProxyLoader().getProxy();
 //	}
 	
-	HttpProxy httpProxy = new ProxyLoader().getProxy();
-
+	ProxyLoader proxyLoader = new ProxyLoader();
+	Proxy proxy = proxyLoader.getProxy();
+	PasswordAuthentication passwordAuthentication = proxyLoader.getPasswordAuthentication();
 	HttpProtocolParameters httpProtocolParameters = new HttpProtocolParameters();
+	
+	httpProtocolParameters.setCompressionOn(true);
 
 	while (true) {
 
 	    FileSession fileSession = new FileSession(
 		    TestParms.AWAKE_URL, TestParms.REMOTE_USER,
-		    TestParms.REMOTE_PASSWORD.toCharArray(), httpProxy,
+		    TestParms.REMOTE_PASSWORD.toCharArray(), proxy, passwordAuthentication,
 		    httpProtocolParameters);
 	   	    
 	    System.out.println(new Date());
 	    
-	    UrlSession urlSession = new UrlSession(httpProxy);
+	    UrlSession urlSession = new UrlSession(proxy, passwordAuthentication);
 
 	    Date begin = new Date();
 
@@ -125,17 +129,38 @@ public class TestRunnerConsole {
 	    
 	    testAll(fileSession);
 
+	    String downloadUrl = null;
+	    
+	    // Tests if we are in localhost or not
+	    if (fileSession.getUrl().contains("localhost")) {
+		downloadUrl = "http://localhost:8080/AwakeFILE/awake-file-download.html";
+	    }
+	    else {
+		downloadUrl = "https://www.aceql.com/soft/3.0/aceql-3.0-quick-start.html";
+	    }
+	    
 	    MessageDisplayer.display("");
-	    String urlDownload = urlSession.download(new URL(
-		    "http://www.google.fr"));
-	    MessageDisplayer.display(urlDownload.substring(0, 80));
+	    String urlDownload = urlSession.download(new URL(downloadUrl));
+	    
+	    if (urlDownload.length() > 80) {
+		MessageDisplayer.display("String first 80 chars: " + urlDownload.substring(0, 80));
+	    }
+	    else {
+		MessageDisplayer.display("String first 80 chars: " + urlDownload);
+	    }
 
 	    File fileUrl = createAwakeTempFile();
-	    urlSession.download(new URL(
-		    "http://www.awake-file.org/1.5/RELEASE-NOTES.txt"),
+	    urlSession.download(new URL(downloadUrl),
 		    fileUrl);
 	    urlDownload = FileUtils.readFileToString(fileUrl);
-	    MessageDisplayer.display(urlDownload.substring(0, 80));
+	    
+	    if (urlDownload.length() > 80) {
+		MessageDisplayer.display("File first 80 chars: " + urlDownload.substring(0, 80));
+	    }
+	    else {
+		MessageDisplayer.display("String first 80 chars: " + urlDownload);
+	    }
+
 
 	    fileUrl.delete();
 

@@ -32,13 +32,14 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
 import java.net.ConnectException;
+import java.net.PasswordAuthentication;
+import java.net.Proxy;
 import java.net.UnknownHostException;
 import java.util.Date;
 
 import org.apache.commons.io.IOUtils;
 import org.junit.Test;
 import org.kawanfw.commons.api.client.HttpProtocolParameters;
-import org.kawanfw.commons.api.client.HttpProxy;
 import org.kawanfw.commons.api.client.InvalidLoginException;
 import org.kawanfw.commons.api.client.RemoteException;
 import org.kawanfw.file.api.client.RemoteFile;
@@ -91,13 +92,16 @@ public class TestRemoteInputStreamProgress {
 	    //TestParms.USE_PROXY = false;
 	    //TestParms.AWAKE_URL = "http://awake-file.org/ServerFileManager";
 
-	    HttpProxy httpProxy = new ProxyLoader().getProxy();
+	    ProxyLoader proxyLoader = new ProxyLoader();
+	    Proxy proxy = proxyLoader.getProxy();
+	    PasswordAuthentication passwordAuthentication = proxyLoader.getPasswordAuthentication();
+	    
 	    HttpProtocolParameters httpProtocolParameters = new HttpProtocolParameters();
 	    httpProtocolParameters.setDownloadChunkLength(RemoteSession.MB * 3);
 	    
 	    remoteSession = new RemoteSession(TestParms.AWAKE_URL,
 		    TestParms.REMOTE_USER,
-		    TestParms.REMOTE_PASSWORD.toCharArray(), httpProxy, httpProtocolParameters);
+		    TestParms.REMOTE_PASSWORD.toCharArray(), proxy, passwordAuthentication, httpProtocolParameters);
 	}
 	
 	InputStream in = null;

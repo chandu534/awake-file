@@ -27,10 +27,16 @@ package org.kawanfw.file.test.parms;
 import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.IOException;
+import java.net.InetSocketAddress;
+import java.net.PasswordAuthentication;
+import java.net.Proxy;
+import java.net.ProxySelector;
+import java.net.URI;
+import java.net.URISyntaxException;
+import java.util.List;
 
 import org.apache.commons.io.FileUtils;
 import org.apache.commons.lang3.StringUtils;
-import org.kawanfw.commons.api.client.HttpProxy;
 import org.kawanfw.commons.util.FrameworkSystemUtil;
 
 /**
@@ -41,6 +47,12 @@ public class ProxyLoader {
 
     private static final String NEOTUNNEL_TXT = "i:\\neotunnel.txt";
 
+    /** Proxy to use with HttpUrlConnection */
+    private Proxy proxy = null;
+
+    /** For authenticated proxy */
+    private PasswordAuthentication passwordAuthentication = null;
+
     /**
      * 
      */
@@ -48,13 +60,17 @@ public class ProxyLoader {
 
     }
 
-    public HttpProxy getProxy() throws IOException {
+    public Proxy getProxy() throws IOException, URISyntaxException {
 	if (FrameworkSystemUtil.isAndroid()) {
 	    return null;
 	}
 
-	HttpProxy httpProxy = null;
-	if (TestParms.USE_PROXY) {
+	System.setProperty("java.net.useSystemProxies", "true");
+	List<Proxy> proxies = ProxySelector.getDefault().select(
+		new URI("http://www.google.com/"));
+	       
+	if (proxies != null && proxies.size() >= 1) {
+	    
 	    System.out.println("Loading proxy file info...");
 	    // System.setProperty("java.net.useSystemProxies", "false");
 	    File file = new File(NEOTUNNEL_TXT);
@@ -62,16 +78,32 @@ public class ProxyLoader {
 		String proxyValues = FileUtils.readFileToString(file);
 		String username = StringUtils.substringBefore(proxyValues, " ");
 		String password = StringUtils.substringAfter(proxyValues, " ");
-		httpProxy = new HttpProxy("127.0.0.1", 8080, username, password);
-		System.out.println("USING PROXY WITH AUTHENTICATION: "
-			+ httpProxy);
+
+//		proxy = new Proxy(Proxy.Type.HTTP, new InetSocketAddress(
+//			"127.0.0.1", 8080));
+		proxy = proxies.get(0);
+
+		passwordAuthentication = new PasswordAuthentication(username,
+			password.toCharArray());
+
+		System.out.println("USING PROXY WITH AUTHENTICATION: " + proxy
+			+ " / " + username + "-" + password);
 	    } else {
 		throw new FileNotFoundException(
 			"proxy values not found. No file " + file);
 	    }
 	}
-	
-	return httpProxy;
+
+	return proxy;
     }
+
+    /**
+     * @return the passwordAuthentication
+     */
+    public PasswordAuthentication getPasswordAuthentication() {
+        return passwordAuthentication;
+    }
+    
+    
 
 }
