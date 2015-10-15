@@ -1,5 +1,5 @@
 			    Awake FILE
-			   Version 3.0
+			   Version 3.1
 			     Readme
 
 Introduction
@@ -12,7 +12,7 @@ Installation - Client Side
 --------------------------
 
 The /lib directory contains the Awake FILE library 
-awake-file-3.0.jar.
+awake-file-3.1.jar.
 The /lib-dependencies directory contains the dependencies.
 
 Add all the jars of /lib & /lib-dependencies subdirectories to your 
@@ -23,7 +23,7 @@ Installation - Server Side
 --------------------------
 
 The /lib directory contains the Awake FILE library 
-awake-file-3.0.jar.
+awake-file-3.1.jar.
 The /lib-dependencies directory contains the dependencies.
 
 Add all the jars of /lib & /lib-dependencies subdirectories to your 

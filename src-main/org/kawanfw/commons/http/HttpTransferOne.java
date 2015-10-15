@@ -433,16 +433,6 @@ public class HttpTransferOne implements HttpTransfer {
 			+ conn.getResponseMessage() + " status: " + statusCode);
 	    }
 
-//	    //Get immediately the content as input stream
-//	    //do *NOT* use a buffered stream ==> Will fail with SSL handshakes!
-//	    contentFile = HttpTransferUtil.createKawansoftTempFile();
-//	    saveResponseContentToFile(contentFile, conn);
-//	    debug("contentFile: " + contentFile);
-//
-//	    // Read content of first line.
-//	    reader = new BufferedReader(new InputStreamReader(
-//		    new FileInputStream(contentFile)));
-
 	    // it's ok to use a buffered stream with SSL with HttpUrlConnection
 	    // Check the server sent us back a compressed content
 	    if ("gzip".equals(conn.getContentEncoding())) {
@@ -461,21 +451,7 @@ public class HttpTransferOne implements HttpTransfer {
 		receiveFile = HttpTransferUtil.createKawansoftTempFile();
 		copyResponseIntoFile(reader, receiveFile);
 	    } else {
-		
-		// NO more length compute, result send by server is false or -1
-		
-//		int maxLengthForString = DefaultParms.DEFAULT_MAX_LENGTH_FOR_STRING;
-//		if (httpProtocolParameters != null) {
-//		    maxLengthForString = httpProtocolParameters
-//			    .getMaxLengthForString();
-//		}
-//		if (contentFile.length() > maxLengthForString) {
-//		    throw new IOException("Response too big for String: > "
-//			    + maxLengthForString + " bytes.");
-//		}
-
 		copyResponseIntoString(reader);
-
 	    }
 
 	    // Analyze applicative response header
@@ -535,33 +511,6 @@ public class HttpTransferOne implements HttpTransfer {
 	}
 
     }
-
-//    /**
-//     * Immediately Save the response content into file and release it
-//     * 
-//     * @param contentFile
-//     *            the file where to save the content
-//     * @param conn
-//     *            the HttpURLConnection instance
-//     * @throws IOException
-//     * @throws IllegalStateException
-//     * @throws FileNotFoundException
-//     */
-//    private void saveResponseContentToFile(File contentFile,
-//	    HttpURLConnection conn) throws IOException, IllegalStateException,
-//	    FileNotFoundException {
-//	InputStream in;
-//	in = conn.getInputStream();
-//	BufferedOutputStream out = new BufferedOutputStream(
-//		new FileOutputStream(contentFile));
-//
-//	try {
-//	    IOUtils.copy(in, out);
-//	} finally {
-//	    IOUtils.closeQuietly(in);
-//	    IOUtils.closeQuietly(out);
-//	}
-//    }
 
     /**
      * Formats & URL encode the the post data for POST.
@@ -787,8 +736,6 @@ public class HttpTransferOne implements HttpTransfer {
 	    } else {
 		in = conn.getInputStream();
 	    }
-
-	    // transferProgressManager.setLengthToTransfer(entity.getContentLength());
 
 	    out = new BufferedOutputStream(new FileOutputStream(file));
 

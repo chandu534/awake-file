@@ -1,5 +1,5 @@
                  Awake FILE
-                Version 3.0
+                Version 3.1
                   Readme
 
 
@@ -20,7 +20,7 @@ Awake FILE uses Ant to build the jars.
 (We use Eclipse 3.7+, but the builds may be adapted to any IDE):
 
 - build-awake-file.xml: 
-  builds the jar awake-file-3.0.jar and awake-file-android-3.0.jar 
+  builds the jar awake-file-3.1.jar and awake-file-android-3.1.jar 
   in /dist.  (Separated dependencies are in /lib).
   
 - build-awake-test.xml

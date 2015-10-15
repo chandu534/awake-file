@@ -1,6 +1,6 @@
 
                    Awake FILE
-                  Version 3.0
+                  Version 3.1
                  Release Notes
 
 
@@ -19,6 +19,49 @@ secure the RPC calls.
 Awake FILE is licensed through the GNU Lesser General Public License 
 (LGPL v2.1): you can use it for free and without any constraints in your 
 open source projects and in your commercial applications.
+
+
+Awake FILE Version 3.1 - 26-mar-2015
+------------------------------------
+
+What's New:
+
+- This version drops Apache HttpClient for http communications in favor of
+  native JRE java.net.HttpUrlConnection. This is due to several reasons:
+  1) Apache HTTP Client Removal by Google in Android 6.0:
+     http://goo.gl/Hwa1yN. It would thus require Android developers a dirty
+     turn around to include back the Apache HTTP Client library.
+  2) It would be very hard for us to code, test, maintain an HttpClient port  
+     compatible with both Android/Dalvik and Java Desktop. There is an
+     Apache port to Android, but it's not compatible with Desktop JRE.
+  3) We don't use advanced Apache HttpClient/HttpCore features.
+  4) java.net.HttpUrlConnection performances are roughly the same as 
+     HttpClient, following our tests. 
+     See HttpClient developer's own benchmark: http://goo.gl/T1HFg6.
+  5) HttpUrlConnection has better support for NTLM and Kerberos 
+     authentication.
+  6) There are less dependencies to ship around using native library.
+
+- We thus have rewritten our HTTP layer and did some
+  performance optimization.
+  
+- This version now supports HTTP compression.
+  See org.kawanfw.commons.api.SessionParameters for configuration.
+
+- The org.kawanfw.commons.api.client.HttpProxy class has been removed, 
+  because it would limit proxy types support and acted only as
+  a java.net.Proxy class wrapper, just adding cumbersome code.
+  java.net.Proxy must now directly be used instead, and allow both
+  HTTP and SOCKS proxy.
+  This is better/cleaner for code development and maintenance.
+  
+- HttpProtocolParameters was renamed to SessionParameters. The old
+  name was inaccurate.
+
+Please note that HttpProxy & HttpProtocolParameters have not been 
+deprecated, but suppressed in order to keep a clean and 
+uncluttered API. 
+ 
 
 
 Awake FILE Version 3.0 - 26-mar-2015
