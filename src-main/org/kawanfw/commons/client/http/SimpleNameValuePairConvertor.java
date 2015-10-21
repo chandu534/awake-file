@@ -22,14 +22,14 @@
  * Any modifications to this file must keep this entire header
  * intact.
  */
-package org.kawanfw.commons.http;
+package org.kawanfw.commons.client.http;
 
 import java.io.IOException;
 import java.util.List;
 import java.util.Vector;
 import java.util.logging.Level;
 
-import org.kawanfw.commons.api.client.HttpProtocolParameters;
+import org.kawanfw.commons.api.client.SessionParameters;
 import org.kawanfw.commons.util.ClientLogger;
 import org.kawanfw.commons.util.FrameworkDebug;
 import org.kawanfw.commons.util.HtmlConverter;
@@ -46,7 +46,7 @@ public class SimpleNameValuePairConvertor {
     private List<SimpleNameValuePair> requestParams = null;
 
     /** The http protocol parameters */
-    private HttpProtocolParameters httpProtocolParameters = null;
+    private SessionParameters sessionParameters = null;
 
     /**
      * Constructor
@@ -55,9 +55,9 @@ public class SimpleNameValuePairConvertor {
      *            the request parameters list of SimpleNameValuePair
      */
     public SimpleNameValuePairConvertor(List<SimpleNameValuePair> requestParams, 
-	    	HttpProtocolParameters httpProtocolParameters) {
+	    	SessionParameters sessionParameters) {
 	this.requestParams = requestParams;
-	this.httpProtocolParameters = httpProtocolParameters;
+	this.sessionParameters = sessionParameters;
     }
 
     /**
@@ -110,11 +110,11 @@ public class SimpleNameValuePairConvertor {
     private String encryptValue(String paramName, String paramValue)
 	    throws IOException {
 	
-	if (httpProtocolParameters == null) {
+	if (sessionParameters == null) {
 	    return paramValue;
 	}
 	
-	char [] password = httpProtocolParameters.getEncryptionPassword();
+	char [] password = sessionParameters.getEncryptionPassword();
 
 	if (password == null || password.length <= 1) {
 	    return paramValue;

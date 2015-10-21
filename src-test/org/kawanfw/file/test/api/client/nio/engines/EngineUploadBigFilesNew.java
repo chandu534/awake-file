@@ -109,7 +109,10 @@ public class EngineUploadBigFilesNew {
 
 	chrono.end();
 
-	ShaComparator.compare(files, Arrays.asList(bigFiles_2));
+	if (TestParms.TEST_BIG_FILES_SHA) {
+	    ShaComparator.compare(files, Arrays.asList(bigFiles_2));
+	}
+
 
 	System.out.println("Done.");
     }

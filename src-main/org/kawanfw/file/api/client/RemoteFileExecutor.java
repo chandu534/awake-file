@@ -34,8 +34,8 @@ import java.util.logging.Level;
 
 import org.kawanfw.commons.api.client.InvalidLoginException;
 import org.kawanfw.commons.api.client.RemoteException;
-import org.kawanfw.commons.http.HttpTransfer;
-import org.kawanfw.commons.http.SimpleNameValuePair;
+import org.kawanfw.commons.client.http.HttpTransfer;
+import org.kawanfw.commons.client.http.SimpleNameValuePair;
 import org.kawanfw.commons.json.ListOfStringTransport;
 import org.kawanfw.commons.util.ClientLogger;
 import org.kawanfw.commons.util.FrameworkDebug;

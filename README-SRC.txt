@@ -20,7 +20,7 @@ Awake FILE uses Ant to build the jars.
 (We use Eclipse 3.7+, but the builds may be adapted to any IDE):
 
 - build-awake-file.xml: 
-  builds the jar awake-file-3.1.jar and awake-file-android-3.1.jar 
+  builds the jar awake-file-client-3.1.jar and awake-file-server-3.1.jar 
   in /dist.  (Separated dependencies are in /lib).
   
 - build-awake-test.xml
@@ -34,7 +34,7 @@ webapp directory.
 JUnit tests
 -----------
 
-1) Create this directory on the client side: user.home/awake-test.
+1) Create this directory on the client side: user.home/kawanfw-test.
 2) Create two image files: Koala.jpg and Tulips.jpg and copy them in 
   the user.home/awake-test directory.
 3) Create a webapp in your servlet container and install all Awake FILEs 

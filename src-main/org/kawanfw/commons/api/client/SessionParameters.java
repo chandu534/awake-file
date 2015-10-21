@@ -27,7 +27,7 @@ package org.kawanfw.commons.api.client;
 import java.io.InputStream;
 import java.io.Serializable;
 
-import org.kawanfw.commons.json.HttpProtocolParametersGson;
+import org.kawanfw.commons.json.SessionParametersGson;
 import org.kawanfw.commons.util.DefaultParms;
 import org.kawanfw.file.api.client.RemoteInputStream;
 import org.kawanfw.file.api.client.RemoteOutputStream;
@@ -38,23 +38,21 @@ import org.kawanfw.file.api.client.RemoteOutputStream;
  * <ul>
  * <li>Timeout value, in milliseconds, to be used when opening a communications link with the remote server. Defaults to 0 (no timeout).</li>
  * <li>Read timeout, in milliseconds, that specifies the timeout when reading from remote Input stream. Defaults to 0 (no timeout).</li>
- * <li>Password to use for encrypting all parameters request between and Host.</li>
+ * <li>Password to use for encrypting all request parameters between client and remote host.</li>
  * <li>Boolean to say if Clob upload/download using character stream or ASCII
  * stream must be html encoded. Defaults to <code>true</code>.</li
- * <li>Boolean to say if http content must be compressed. Defaults to <code>false</code>.</li>
+ * <li>Boolean to say if http content must be compressed. Defaults to <code>true</code>.</li>
  * <li>Download chunk length to be used by
  * {@link RemoteInputStream}. Defaults to 10Mb. 0
  * means files are not chunked.</li>
  * <li>Upload chunk length to be used by
- * {@link RemoteOutputStream} Defaults to 3Mb. 0 means
+ * {@link RemoteOutputStream} Defaults to 10Mb. 0 means
  * files are not chunked.</li>
  * <li>Boolean to say if client sides allows HTTPS call with all SSL
  * Certificates, including "invalid" or self-signed Certificates. Defaults to
  * <code>false</code>.</li>
- * <li>Buffer size when uploading files. Defaults to 4 Kb.</li>
- * <li>Buffer size when downloading files. Defaults to 4 Kb.</li>
  * <li>Maximum authorized length for a string for upload or download (in order
- * to avoid {@code OutOfMemoryException} on client and server side.) Defaults to 2 Mb.</li>
+ * to avoid {@code OutOfMemoryException} on client and server side.) Defaults to 2Mb.</li>
  * </ul>
  * <p>
  * Use this class to change the default values of the http session and
@@ -70,20 +68,20 @@ import org.kawanfw.file.api.client.RemoteOutputStream;
  * String username = "myUsername";
  * char [] password = {'m', 'y', 'P', 'a', 's', 's', 'w', 'o', 'r', 'd'}; 
  * &nbsp;        
- * HttpProtocolParameters httpProtocolParameters = new HttpProtocolParameters();
+ * SessionParameters sessionParameters = new SessionParameters();
  * &nbsp;
  * // Sets the timeout until a connection is established to 10 seconds
- * httpProtocolParameters.setConnectTimeout(10);
+ * sessionParameters.setConnectTimeout(10);
  * &nbsp;
  * // Sets the read timeout to 60 seconds
- * httpProtocolParameters.setReadTimeout(10);
+ * sessionParameters.setReadTimeout(60);
  * &nbsp;        
  * // We will use no proxy
  * Proxy proxy = null;
  * PasswordAuthentication passwordAuthentication = null;
  * &nbsp;        
  * RemoteSession remoteSession 
- * = new RemoteSession(url, username, password, proxy, passwordAuthentication, httpProtocolParameters);
+ * = new RemoteSession(url, username, password, proxy, passwordAuthentication, sessionParameters);
  * &nbsp;
  * // Etc.
  * 
@@ -93,7 +91,7 @@ import org.kawanfw.file.api.client.RemoteOutputStream;
  * @since 1.0
  */
 
-public class HttpProtocolParameters implements Serializable {
+public class SessionParameters implements Serializable {
 
     /**
      * Serial number
@@ -102,12 +100,6 @@ public class HttpProtocolParameters implements Serializable {
 
     /** The maximum size of a string read from input stream. Should be &le; 2Mb */
     private int maxLengthForString = DefaultParms.DEFAULT_MAX_LENGTH_FOR_STRING;
-
-    /** The buffer size when uploading a file */
-    private int uploadBufferSize = DefaultParms.DEFAULT_UPLOAD_BUFFER_SIZE;
-
-    /** Buffer size for download and copy */
-    private int downloadBufferSize = DefaultParms.DEFAULT_DOWNLOAD_BUFFER_SIZE;
 
     /**
      * Says if we want to html Encode the Clob when using chararacter or ASCII
@@ -135,7 +127,7 @@ public class HttpProtocolParameters implements Serializable {
 
     /**
      * The chunk length in bytes for {@link RemoteOutputStream}.
-     * Defaults to 3Mb.
+     * Defaults to 10Mb.
      */
     private long uploadChunkLength = DefaultParms.DEFAULT_UPLOAD_CHUNK_LENGTH;
 
@@ -151,7 +143,7 @@ public class HttpProtocolParameters implements Serializable {
     /**
      * Constructor.
      */
-    public HttpProtocolParameters() {
+    public SessionParameters() {
 	
     }
 
@@ -175,44 +167,6 @@ public class HttpProtocolParameters implements Serializable {
      */
     public void setMaxLengthForString(int maxLengthForString) {
 	this.maxLengthForString = maxLengthForString;
-    }
-
-    /**
-     * Returns the buffer size in bytes when uploading files.
-     * 
-     * @return the buffer size in bytes when uploading files
-     */
-    public int getUploadBufferSize() {
-	return this.uploadBufferSize;
-    }
-
-    /**
-     * Sets the buffer size in bytes when uploading files.
-     * 
-     * @param uploadBufferSize
-     *            the buffer size in bytes when uploading files
-     */
-    public void setUploadBufferSize(int uploadBufferSize) {
-	this.uploadBufferSize = uploadBufferSize;
-    }
-
-    /**
-     * Returns the buffer size in bytes when downloading files.
-     * 
-     * @return the buffer size in bytes when downloading files
-     */
-    public int getDownloadBufferSize() {
-	return this.downloadBufferSize;
-    }
-
-    /**
-     * Sets the buffer size in bytes when downloading files.
-     * 
-     * @param downloadBufferSize
-     *            the buffer size in bytes when downloading files to set
-     */
-    public void setDownloadBufferSize(int downloadBufferSize) {
-	this.downloadBufferSize = downloadBufferSize;
     }
 
     /**
@@ -279,7 +233,7 @@ public class HttpProtocolParameters implements Serializable {
 
     /**
      * Returns the chunk length in bytes used by
-     * {@link RemoteOutputStream}. Defaults to 3Mb. 0
+     * {@link RemoteOutputStream}. Defaults to 10Mb. 0
      * means files are not chunked.
      * 
      * @return the chunk length in bytes to be used for file upload
@@ -332,7 +286,6 @@ public class HttpProtocolParameters implements Serializable {
      * @return an <code>int</code> that indicates the connect timeout
      *         value in milliseconds
      * @see #setConnectTimeout(int)
-     * @see #connect()
      * @since 3.1
      */
     public int getConnectTimeout() {
@@ -351,8 +304,8 @@ public class HttpProtocolParameters implements Serializable {
      * @see #getConnectTimeout()
      * @since 3.1
      */
-    public void setConnectTimeout(int connectTimeout) {
-        this.connectTimeout = connectTimeout;
+    public void setConnectTimeout(int timeout) {
+        this.connectTimeout = timeout;
     }
 
     
@@ -387,13 +340,14 @@ public class HttpProtocolParameters implements Serializable {
      * @see InputStream#read()
      * @since 3.1
      */
-    public void setReadTimeout(int readTimeout) {
-        this.readTimeout = readTimeout;
+    public void setReadTimeout(int timeout) {
+        this.readTimeout = timeout;
     }
 
     /**
      * Says if http content is compressed
      * @return {@code true} if compression is activated
+     * @since 3.1
      */
     public boolean isCompressionOn() {
         return compressionOn;
@@ -402,23 +356,24 @@ public class HttpProtocolParameters implements Serializable {
     /**
      * Says if http content is compressed
      * @param compressionOn {@code true} if compression is activated, else {@code false}
+     * @since 3.1
      */
     public void setCompressionOn(boolean compressionOn) {
         this.compressionOn = compressionOn;
     }
 
     /**
-     * Returns a JSon representation of the <code>HttpProtocolParameters</code>
+     * Returns a JSon representation of the <code>SessionParameters</code>
      * instance. <br>
      * The JSon formated String can be used later to rebuild the instance from
      * the String.
      * 
-     * @return a JSon representation of the <code>HttpProtocolParameters</code>
+     * @return a JSon representation of the <code>SessionParameters</code>
      *         instance
      */
     @Override
     public String toString() {
-	return HttpProtocolParametersGson.toJson(this);
+	return SessionParametersGson.toJson(this);
     }
 
 }

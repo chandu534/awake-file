@@ -39,7 +39,7 @@ import java.util.Date;
 
 import org.apache.commons.io.IOUtils;
 import org.junit.Test;
-import org.kawanfw.commons.api.client.HttpProtocolParameters;
+import org.kawanfw.commons.api.client.SessionParameters;
 import org.kawanfw.commons.api.client.InvalidLoginException;
 import org.kawanfw.commons.api.client.RemoteException;
 import org.kawanfw.file.api.client.RemoteFile;
@@ -96,12 +96,12 @@ public class TestRemoteInputStreamProgress {
 	    Proxy proxy = proxyLoader.getProxy();
 	    PasswordAuthentication passwordAuthentication = proxyLoader.getPasswordAuthentication();
 	    
-	    HttpProtocolParameters httpProtocolParameters = new HttpProtocolParameters();
-	    httpProtocolParameters.setDownloadChunkLength(RemoteSession.MB * 3);
+	    SessionParameters sessionParameters = new SessionParameters();
+	    sessionParameters.setDownloadChunkLength(RemoteSession.MB * 3);
 	    
 	    remoteSession = new RemoteSession(TestParms.AWAKE_URL,
 		    TestParms.REMOTE_USER,
-		    TestParms.REMOTE_PASSWORD.toCharArray(), proxy, passwordAuthentication, httpProtocolParameters);
+		    TestParms.REMOTE_PASSWORD.toCharArray(), proxy, passwordAuthentication, sessionParameters);
 	}
 	
 	InputStream in = null;

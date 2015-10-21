@@ -21,12 +21,12 @@ Awake FILE is licensed through the GNU Lesser General Public License
 open source projects and in your commercial applications.
 
 
-Awake FILE Version 3.1 - 26-mar-2015
+Awake FILE Version 3.1 - 21-oct-2015
 ------------------------------------
 
 What's New:
 
-- This version drops Apache HttpClient for http communications in favor of
+- This version drops Apache HttpClient for HTTP communications in favor of
   native JRE java.net.HttpUrlConnection. This is due to several reasons:
   1) Apache HTTP Client Removal by Google in Android 6.0:
      http://goo.gl/Hwa1yN. It would thus require Android developers a dirty
@@ -34,13 +34,14 @@ What's New:
   2) It would be very hard for us to code, test, maintain an HttpClient port  
      compatible with both Android/Dalvik and Java Desktop. There is an
      Apache port to Android, but it's not compatible with Desktop JRE.
-  3) We don't use advanced Apache HttpClient/HttpCore features.
-  4) java.net.HttpUrlConnection performances are roughly the same as 
-     HttpClient, following our tests. 
-     See HttpClient developer's own benchmark: http://goo.gl/T1HFg6.
+  3) We don't use Apache HttpClient/HttpCore advanced features.
+  4) Following our tests, fine tuned java.net.HttpUrlConnection performances 
+     are the same or better as HttpClient.
+     (See HttpClient developer's own benchmark at http://goo.gl/T1HFg6:
+     magnitude is the same).
   5) HttpUrlConnection has better support for NTLM and Kerberos 
      authentication.
-  6) There are less dependencies to ship around using native library.
+  6) There are 1Mb less dependencies to ship around using native library.
 
 - We thus have rewritten our HTTP layer and did some
   performance optimization.
@@ -51,15 +52,27 @@ What's New:
 - The org.kawanfw.commons.api.client.HttpProxy class has been removed, 
   because it would limit proxy types support and acted only as
   a java.net.Proxy class wrapper, just adding cumbersome code.
-  java.net.Proxy must now directly be used instead, and allow both
-  HTTP and SOCKS proxy.
+  java.net.Proxy must now directly be used instead, and allows both
+  HTTP and SOCKS proxy support.
   This is better/cleaner for code development and maintenance.
   
-- HttpProtocolParameters was renamed to SessionParameters. The old
-  name was inaccurate.
+- org.kawanfw.commons.api.client.HttpProtocolParameters was renamed to 
+  org.kawanfw.commons.api.client.SessionParameters.
+  The old name was inaccurate. 
+  setCompressionOn(), setConnectTimeout() and
+  setReadTimeout() have been added, see Javadoc and Tutorial.
+  The methods referring to Apache HttpClient 
+  settings have been removed. setDownloadBufferSize() and 
+  setUploadBufferSize() have been removed: standard 4096 size
+  is used. 
+  
+- There is no more dedicated Android distribution. 
+  There are now  1) a jar for client side (all OS and Android): 
+  awake-file-client-3.1.jar  and 2) a jar for the server side : 
+  awake-file-server-3.1.jar.
 
 Please note that HttpProxy & HttpProtocolParameters have not been 
-deprecated, but suppressed in order to keep a clean and 
+deprecated, but suppressed/renamed in order to keep a clean and 
 uncluttered API. 
  
 

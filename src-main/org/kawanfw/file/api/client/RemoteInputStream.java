@@ -39,10 +39,10 @@ import java.net.UnknownHostException;
 import java.util.logging.Level;
 
 import org.apache.commons.io.FileUtils;
-import org.kawanfw.commons.api.client.HttpProtocolParameters;
+import org.kawanfw.commons.api.client.SessionParameters;
 import org.kawanfw.commons.api.client.InvalidLoginException;
 import org.kawanfw.commons.api.client.RemoteException;
-import org.kawanfw.commons.http.HttpTransferUtil;
+import org.kawanfw.commons.client.http.HttpTransferUtil;
 import org.kawanfw.commons.util.ClientLogger;
 import org.kawanfw.commons.util.DefaultParms;
 import org.kawanfw.commons.util.FrameworkDebug;
@@ -65,14 +65,14 @@ import org.kawanfw.file.util.parms.ReturnCode;
  * <br>
  * Large streams are split in chunks that are downloaded in sequence. The
  * default chunk length is 10Mb. You can change the default value with 
- * {@link HttpProtocolParameters#setDownloadChunkLength(long)} before passing 
- * {@code HttpProtocolParameters} to {@code RemoteSession} constructor. <br>
+ * {@link SessionParameters#setDownloadChunkLength(long)} before passing 
+ * {@code SessionParameters} to {@code RemoteSession} constructor. <br>
  * Note that streams chunking requires all chunks to be downloaded from to the
  * same web server. Thus, file chunking does not support true stateless
  * architecture with multiple identical web servers. If you want to set a full
  * stateless architecture with multiple identical web servers, you must disable
  * file chunking. This is done by setting a 0 download chunk length value using
- * {@link HttpProtocolParameters#setDownloadChunkLength(long)}. <br>
+ * {@link SessionParameters#setDownloadChunkLength(long)}. <br>
  * <br>
  * A recovery mechanism allows - in case of failure - to start again in the same
  * JVM run the download from the last non-downloaded chunk. <br>
@@ -671,7 +671,7 @@ public class RemoteInputStream extends InputStream {
 	    throws IOException {
 
 	int len;
-	int bufferSize = DefaultParms.DEFAULT_DOWNLOAD_BUFFER_SIZE;
+	int bufferSize = DefaultParms.DEFAULT_WRITE_BUFFER_SIZE;
 
 	// Get all content into a string and throw an analyzed exception
 	// Exception

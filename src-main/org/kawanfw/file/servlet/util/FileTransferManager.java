@@ -295,13 +295,13 @@ public class FileTransferManager {
      */
     private long copy(RandomAccessFile raf, OutputStream out, long chunkLength)
 	    throws IOException {
-	int downloadBufferSize = DefaultParms.DEFAULT_DOWNLOAD_BUFFER_SIZE;
+	int writeBufferSize = DefaultParms.DEFAULT_WRITE_BUFFER_SIZE;
 
 	// For Chunk Length comparison. If buffer read > chunk
 	// length ==> exit
 	long totalRead = 0;
 
-	byte[] tmp = new byte[downloadBufferSize];
+	byte[] tmp = new byte[writeBufferSize];
 	int len;
 
 	while ((len = raf.read(tmp)) >= 0) {
@@ -310,7 +310,7 @@ public class FileTransferManager {
 
 	    // Exit if chunk length is reached. We will just send
 	    // the chunck,InputStream will be reused
-	    if (chunkLength > 0 && totalRead > chunkLength - downloadBufferSize) {
+	    if (chunkLength > 0 && totalRead > chunkLength - writeBufferSize) {
 		return totalRead;
 	    }
 	}
@@ -339,7 +339,7 @@ public class FileTransferManager {
     }
 
     /**
-     * Create the parent directorie of file, if necessary
+     * Create the parent directory of file, if necessary
      * 
      * @param file
      *            the file to create for the parent directories if necessary
@@ -358,7 +358,7 @@ public class FileTransferManager {
      * @param username
      *            the client username
      * @param filename
-     *            the chunk filr name
+     *            the chunk file name
      */
     private void initFileIfFirstChunk(String username, String filename)
 	    throws IOException {

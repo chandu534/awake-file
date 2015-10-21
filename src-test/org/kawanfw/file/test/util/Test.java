@@ -31,6 +31,7 @@ import java.io.IOException;
 import java.io.InputStreamReader;
 import java.io.Reader;
 import java.net.HttpURLConnection;
+import java.net.MalformedURLException;
 import java.net.URL;
 
 import org.kawanfw.file.api.util.client.JarReader;
@@ -64,6 +65,20 @@ public class Test {
      */
     public static void main(String[] args) throws Exception {
 	
+	String sqlOrder = "select * from table";
+	System.out.println(sqlOrder);
+	sqlOrder = sqlOrder.substring(0, "select".length()) + " top(1) "
+		+ sqlOrder.substring("select".length() + 1);
+	System.out.println(sqlOrder);
+
+	sqlOrder = "select * from table";
+	sqlOrder = sqlOrder.substring(0, "select".length()) + " FIRST 1 "
+		+ sqlOrder.substring("select".length() + 1);
+	    
+    }
+
+    public static void CompressedConnectionTest() throws MalformedURLException,
+	    IOException {
 	URL url = new URL("https://www.aceql.com");
 	HttpURLConnection con = (HttpURLConnection) url.openConnection();
 	con.setRequestProperty("Accept-Encoding", "gzip");
@@ -76,7 +91,7 @@ public class Test {
 		break;
 	    }
 	    System.out.print((char) ch);
-	} 
+	}
     }
 
     /**

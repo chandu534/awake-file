@@ -45,17 +45,18 @@ import org.kawanfw.file.test.util.MessageDisplayer;
 public class TestParms {
              
     /** if true, a proxy will be used */
-    public static boolean USE_PROXY = true;
+    public static boolean USE_PROXY = false;
     
     /** if true, request will be encrypted */
     public static boolean USE_ENCRYPTION_PASSWORD = true;
     
     public static boolean TEST_BIG_FILES = false;
+    public static boolean TEST_BIG_FILES_SHA = true;
     
     /** If true, The test will run in loop mode (to detect memory leaks) */
     public static boolean LOOP_MODE = false;
        
-    public static boolean COMPRESSION_ON = false;
+    public static boolean COMPRESSION_ON = true;
     
     /** Remote parameters */    
     public static String AWAKE_URL = "http://localhost:8080/awake-file/ServerFileManager";

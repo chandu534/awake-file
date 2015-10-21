@@ -39,7 +39,7 @@ import org.apache.commons.io.FileUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.kawanfw.commons.api.client.InvalidLoginException;
 import org.kawanfw.commons.api.client.RemoteException;
-import org.kawanfw.commons.http.HttpTransferUtil;
+import org.kawanfw.commons.client.http.HttpTransferUtil;
 import org.kawanfw.commons.util.ClientLogger;
 import org.kawanfw.commons.util.FrameworkDebug;
 import org.kawanfw.commons.util.Tag;

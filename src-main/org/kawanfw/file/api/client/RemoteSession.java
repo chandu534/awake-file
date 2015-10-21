@@ -46,12 +46,12 @@ import java.util.logging.Level;
 
 import org.apache.commons.io.IOUtils;
 import org.apache.commons.lang3.StringUtils;
-import org.kawanfw.commons.api.client.HttpProtocolParameters;
 import org.kawanfw.commons.api.client.InvalidLoginException;
 import org.kawanfw.commons.api.client.RemoteException;
-import org.kawanfw.commons.http.HttpTransfer;
-import org.kawanfw.commons.http.HttpTransferUtil;
-import org.kawanfw.commons.http.SimpleNameValuePair;
+import org.kawanfw.commons.api.client.SessionParameters;
+import org.kawanfw.commons.client.http.HttpTransfer;
+import org.kawanfw.commons.client.http.HttpTransferUtil;
+import org.kawanfw.commons.client.http.SimpleNameValuePair;
 import org.kawanfw.commons.json.ListOfStringTransport;
 import org.kawanfw.commons.util.ClientLogger;
 import org.kawanfw.commons.util.FrameworkDebug;
@@ -74,15 +74,18 @@ import org.kawanfw.file.version.FileVersion;
  * {@link RemoteOutputStream}.</li>
  * <li>Download files by wrapping bytes copy from a {@link RemoteInputStream} to
  * a {@code FileOutputStream}.</li>
- * <li>Returns with one call the length of a list of files located on the remote host.</li>
+ * <li>Returns with one call the length of a list of files located on the remote
+ * host.</li>
  * </ul>
  * <br>
- * Note that main operations on remote files are done using {@link RemoteFile} class whose
- * method names, signatures and roles are equivalent to those of {@code File} class.
+ * Note that main operations on remote files are done using {@link RemoteFile}
+ * class whose method names, signatures and roles are equivalent to those of
+ * {@code File} class.
  * <p>
- * Example:
- * <blockquote><pre>
-* // Define URL of the path to the {@code ServerFileManager} servlet
+ * Example: <blockquote>
+ * 
+ * <pre>
+ * // Define URL of the path to the {@code ServerFileManager} servlet
  * String url = &quot;https://www.acme.org/ServerFileManager&quot;;
  * 
  * // The login info for strong authentication on server side:
@@ -94,26 +97,58 @@ import org.kawanfw.file.version.FileVersion;
  * 
  * // OK: upload a file
  * remoteSession.upload(new File(&quot;c:\\myFile.txt&quot;), &quot;/home/mylogin/myFile.txt&quot;);
- * </pre></blockquote>
+ * </pre>
+ * 
+ * </blockquote>
  * <p>
- * Communication via an (authenticating) proxy server is done using an
- * {@link org.kawanfw.commons.api.client.HttpProxy} instance: 
+ * Communication via a proxy server is done using
+ * {@code java.net.Proxy} and {@code java.net.PasswordAuthentication} for
+ * authentication.
  * 
- * <blockquote><pre>
- * HttpProxy httpProxy = new HttpProxy(&quot;myproxyhost&quot;, 8080);
- * String url = &quot;https://www.acme.org/ServerFileManager&quot;;
+ * <blockquote>
  * 
- * // The login info for strong authentication on server side:
- * String username = &quot;myUsername&quot;;
- * char[] password = { 'm', 'y', 'P', 'a', 's', 's', 'w', 'o', 'r', 'd' };
+ * <pre>
+	String url = "http://www.acme.org/ServerFileManager";
+	String username = "myUsername";
+	char[] password = "myPassword".toCharArray();
+
+	Proxy proxy = new Proxy(Proxy.Type.HTTP, new InetSocketAddress(
+		    "proxyHostname", 8080));
+	    
+	PasswordAuthentication passwordAuthentication = null;
+	
+	// If proxy requires authentication:
+	passwordAuthentication = new PasswordAuthentication("proxyUsername", "proxyPassword".toCharArray());
+	
+	RemoteSession remoteSession = new RemoteSession(url, username,
+		password, proxy, passwordAuthentication);
+	// Etc.
+ * </pre>
  * 
- * RemoteSession remoteSession = new RemoteSession(url, username, password,
- * 	httpProxy);
+ * </blockquote>
  * 
- * // Etc.
-  </pre></blockquote>
+ * <p>
+ * NTLM authentication is done using {@code PasswordAuthentication}:
  * 
- * @see org.kawanfw.commons.api.client.HttpProxy
+ * <blockquote>
+ * 
+ * <pre>
+	String url = "http://www.acme.org/ServerFileManager";
+	String username = "myUsername";
+	char[] password = "myPassword".toCharArray();
+
+	Proxy proxy = Proxy.NO_PROXY;
+	
+	// DOMAIN is passed along username:
+	PasswordAuthentication passwordAuthentication = new PasswordAuthentication("DOMAIN\\username", "password".toCharArray());
+	
+	RemoteSession remoteSession = new RemoteSession(url, username,
+		password, proxy, passwordAuthentication);
+	// Etc.
+ * </pre>
+ * 
+ * </blockquote>
+ * 
  * @see org.kawanfw.file.api.client.RemoteFile
  * @see org.kawanfw.file.api.client.RemoteInputStream
  * @see org.kawanfw.file.api.client.RemoteOutputStream
@@ -157,12 +192,12 @@ public class RemoteSession implements Cloneable {
 
     /** Proxy to use with HttpUrlConnection */
     private Proxy proxy = null;
-    
+
     /** For authenticated proxy */
-    private PasswordAuthentication passwordAuthentication = null;    
+    private PasswordAuthentication passwordAuthentication = null;
 
     /** The Http Parameters instance */
-    private HttpProtocolParameters httpProtocolParameters = null;
+    private SessionParameters sessionParameters = null;
 
     /** The http transfer instance */
     private HttpTransfer httpTransfer = null;
@@ -188,31 +223,30 @@ public class RemoteSession implements Cloneable {
      *            null for call() or downloadUrl())
      * @param authenticationToken
      *            the actual token of the Awake FILE session to clone
-	* @param proxy
-     *            the proxy to use, null for direct access
+     * @param proxy
+     *            the proxy to use, may be null for direct access
      * @param passwordAuthentication
-     *            the proxy credentials, null if proxy does not require authentication
-     * @param httpProtocolParameters
+     *            the proxy credentials, null if no proxy or if the proxy does
+     *            not require authentication
+     * @param sessionParameters
      *            the http parameters to use
-     * @param remoteJavaVersion 
-     * 		 the Java version on remote server
+     * @param remoteJavaVersion
+     *            the Java version on remote server
      */
     private RemoteSession(String url, String username,
 	    String authenticationToken, Proxy proxy,
 	    PasswordAuthentication passwordAuthentication,
-
-	    HttpProtocolParameters httpProtocolParameters,
-	    String remoteJavaVersion) {
+	    SessionParameters sessionParameters, String remoteJavaVersion) {
 	this.url = url;
 	this.username = username;
 	this.authenticationToken = authenticationToken;
 	this.proxy = proxy;
 	this.passwordAuthentication = passwordAuthentication;
-	this.httpProtocolParameters = httpProtocolParameters;
+	this.sessionParameters = sessionParameters;
 	this.remoteJavaVersion = remoteJavaVersion;
 
 	httpTransfer = HttpTransferUtil.HttpTransferFactory(url, proxy,
-		passwordAuthentication, httpProtocolParameters);
+		passwordAuthentication, sessionParameters);
     }
 
     /**
@@ -227,12 +261,12 @@ public class RemoteSession implements Cloneable {
      *            the user password for authentication on the Awake Server (may
      *            be null)
      * @param proxy
-     *            the proxy to use, null for direct access
+     *            the proxy to use, may be null for direct access
      * @param passwordAuthentication
-     *            the proxy credentials, null if proxy does not require
-     *            authentication
-     * @param httpProtocolParameters
-     *            the http parameters to use (may be null)
+     *            the proxy credentials, null if no proxy or if the proxy does
+     *            not require authentication
+     * @param sessionParameters
+     *            the session parameters to use (may be null)
      * 
      * @throws MalformedURLException
      *             if the url is malformed
@@ -261,10 +295,10 @@ public class RemoteSession implements Cloneable {
      */
     public RemoteSession(String url, String username, char[] password,
 	    Proxy proxy, PasswordAuthentication passwordAuthentication,
-	    HttpProtocolParameters httpProtocolParameters)
-	    throws MalformedURLException, UnknownHostException,
-	    ConnectException, SocketException, InvalidLoginException,
-	    RemoteException, SecurityException, IOException {
+	    SessionParameters sessionParameters) throws MalformedURLException,
+	    UnknownHostException, ConnectException, SocketException,
+	    InvalidLoginException, RemoteException, SecurityException,
+	    IOException {
 
 	if (url == null) {
 	    throw new MalformedURLException("url is null!");
@@ -278,15 +312,18 @@ public class RemoteSession implements Cloneable {
 
 	this.proxy = proxy;
 	this.passwordAuthentication = passwordAuthentication;
-	this.httpProtocolParameters = httpProtocolParameters;
+	this.sessionParameters = sessionParameters;
 
 	// username & password may be null: for call()
 	if (username == null) {
 	    return;
 	}
 
+	
 	// Launch the Servlet
-	httpTransfer = HttpTransferUtil.HttpTransferFactory(url, proxy, passwordAuthentication, httpProtocolParameters);
+	httpTransfer = HttpTransferUtil.HttpTransferFactory(url, proxy,
+		passwordAuthentication, sessionParameters);
+
 	
 	// TestReload if SSL required by host
 	if (this.url.toLowerCase().startsWith("http://") && isForceHttps()) {
@@ -303,7 +340,8 @@ public class RemoteSession implements Cloneable {
 		Parameter.TEST_CRYPTO));
 	requestParams.add(new SimpleNameValuePair(Parameter.ACTION,
 		Action.LOGIN_ACTION));
-	requestParams.add(new SimpleNameValuePair(Parameter.USERNAME, username));
+	requestParams
+		.add(new SimpleNameValuePair(Parameter.USERNAME, username));
 	requestParams.add(new SimpleNameValuePair(Parameter.PASSWORD,
 		passwordStr));
 
@@ -324,7 +362,7 @@ public class RemoteSession implements Cloneable {
 	    // Keep in static memory the Authentication Token for next api
 	    // commands (First 20 chars)
 	    String theToken = receive.substring(ReturnCode.OK.length() + 1);
-	    
+
 	    authenticationToken = StringUtils.left(theToken,
 		    Parameter.TOKEN_LEFT_SIZE);
 	} else {
@@ -333,7 +371,7 @@ public class RemoteSession implements Cloneable {
 	    throw new InvalidLoginException(Tag.PRODUCT_PRODUCT_FAIL
 		    + " Please contact support.");
 	}
-
+	
     }
 
     /**
@@ -347,10 +385,11 @@ public class RemoteSession implements Cloneable {
      * @param password
      *            the user password for authentication on the Awake Server (may
      *            be null)
-	 * @param proxy
-     *            the proxy to use, null for direct access
+     * @param proxy
+     *            the proxy to use, may be null for direct access
      * @param passwordAuthentication
-     *            the proxy credentials, null if proxy does not require authentication
+     *            the proxy credentials, null if no proxy or if the proxy does
+     *            not require authentication
      * 
      * @throws MalformedURLException
      *             if the url is malformed
@@ -377,11 +416,10 @@ public class RemoteSession implements Cloneable {
      *             for all other IO / Network / System Error
      */
     public RemoteSession(String url, String username, char[] password,
-		 Proxy proxy, 
-		 PasswordAuthentication passwordAuthentication) throws MalformedURLException,
-	    UnknownHostException, ConnectException, SocketException,
-	    InvalidLoginException, RemoteException, SecurityException,
-	    IOException {
+	    Proxy proxy, PasswordAuthentication passwordAuthentication)
+	    throws MalformedURLException, UnknownHostException,
+	    ConnectException, SocketException, InvalidLoginException,
+	    RemoteException, SecurityException, IOException {
 	this(url, username, password, proxy, passwordAuthentication, null);
     }
 
@@ -439,20 +477,20 @@ public class RemoteSession implements Cloneable {
     }
 
     /**
-     * Returns the {@code HttpProtocolParameters} instance in use for the Awake
-     * FILE session.
+     * Returns the {@code SessionParameters} instance in use for the Awake FILE
+     * session.
      * 
-     * @return the {@code HttpProtocolParameters} instance in use for the Awake
-     *         FILE session
+     * @return the {@code SessionParameters} instance in use for the Awake FILE
+     *         session
      */
-    public HttpProtocolParameters getHttpProtocolParameters() {
-	return this.httpProtocolParameters;
+    public SessionParameters getSessionParameters() {
+	return this.sessionParameters;
     }
 
     /**
      * Returns the URL of the path to the <code>ServerFileManager</code> Servlet
-     * (or <code>ServerSqlManager</code> Servlet if session has been initiated by
-     * a <code>RemoteConnection</code>).
+     * (or <code>ServerSqlManager</code> Servlet if session has been initiated
+     * by a <code>RemoteConnection</code>).
      * 
      * @return the URL of the path to the <code>ServerFileManager</code> Servlet
      */
@@ -468,13 +506,14 @@ public class RemoteSession implements Cloneable {
     public Proxy getProxy() {
 	return this.proxy;
     }
-    
+
     /**
      * Returns the proxy credentials
+     * 
      * @return the proxy credentials
      */
     public PasswordAuthentication getPasswordAuthentication() {
-        return passwordAuthentication;
+	return passwordAuthentication;
     }
 
     /**
@@ -499,7 +538,6 @@ public class RemoteSession implements Cloneable {
     public String getAuthenticationToken() {
 	return this.authenticationToken;
     }
-
 
     /**
      * Calls a remote Java method and (eventually) pass some parameters to it.
@@ -609,7 +647,8 @@ public class RemoteSession implements Cloneable {
 	List<SimpleNameValuePair> requestParams = new Vector<SimpleNameValuePair>();
 	requestParams.add(new SimpleNameValuePair(Parameter.ACTION,
 		Action.CALL_ACTION_HTML_ENCODED));
-	requestParams.add(new SimpleNameValuePair(Parameter.USERNAME, username));
+	requestParams
+		.add(new SimpleNameValuePair(Parameter.USERNAME, username));
 	requestParams.add(new SimpleNameValuePair(Parameter.TOKEN,
 		authenticationToken));
 	requestParams.add(new SimpleNameValuePair(Parameter.METHOD_NAME,
@@ -640,21 +679,23 @@ public class RemoteSession implements Cloneable {
 
     }
 
-   
     /**
-     * Returns with one call the length of a list of files located on the remote host.
+     * Returns with one call the length of a list of files located on the remote
+     * host.
      * <p>
      * This convenient methods is provided for fast compute of the total length
-     * of a list of files to download, without contacting the server
-     * for each file result. (Case using a progress monitor).
+     * of a list of files to download, without contacting the server for each
+     * file result. (Case using a progress monitor).
      * <p>
-     * The real paths of the remote files depend on the Awake FILE
-     * configuration on the server. See User Documentation.
+     * The real paths of the remote files depend on the Awake FILE configuration
+     * on the server. See User Documentation.
      * 
      * @param pathnames
-     *            the list of pathnames on host with "/" as file separator. Must be absolute.
+     *            the list of pathnames on host with "/" as file separator. Must
+     *            be absolute.
      * 
-     * @return the total length in bytes of the files located on the remote host.
+     * @return the total length in bytes of the files located on the remote
+     *         host.
      * 
      * @throws IllegalArgumentException
      *             if pathnames is null
@@ -679,11 +720,10 @@ public class RemoteSession implements Cloneable {
      * @throws IOException
      *             for all other IO / Network / System Error
      */
-    public long length(List<String> pathnames)
-	    throws IllegalArgumentException, InvalidLoginException,
-	    UnknownHostException, ConnectException, SocketException,
-	    RemoteException, IOException {
-	
+    public long length(List<String> pathnames) throws IllegalArgumentException,
+	    InvalidLoginException, UnknownHostException, ConnectException,
+	    SocketException, RemoteException, IOException {
+
 	if (pathnames == null) {
 	    throw new IllegalArgumentException("pathnames can not be null!");
 	}
@@ -699,11 +739,12 @@ public class RemoteSession implements Cloneable {
 	List<SimpleNameValuePair> requestParams = new Vector<SimpleNameValuePair>();
 	requestParams.add(new SimpleNameValuePair(Parameter.ACTION,
 		Action.GET_FILE_LENGTH_ACTION));
-	requestParams.add(new SimpleNameValuePair(Parameter.USERNAME, username));
+	requestParams
+		.add(new SimpleNameValuePair(Parameter.USERNAME, username));
 	requestParams.add(new SimpleNameValuePair(Parameter.TOKEN,
 		authenticationToken));
-	requestParams
-		.add(new SimpleNameValuePair(Parameter.FILENAME, jsonString));
+	requestParams.add(new SimpleNameValuePair(Parameter.FILENAME,
+		jsonString));
 
 	httpTransfer.send(requestParams);
 
@@ -726,27 +767,26 @@ public class RemoteSession implements Cloneable {
 	    }
 	}
     }
-    
+
     /**
      * Downloads a file from the remote server. <br>
      * This method simply wraps bytes copy from a {@link RemoteInputStream} to a
      * {@code FileOutputStream}.
      * <p>
-     * The real path of the remote file depends on the Awake FILE
-     * configuration on the server. See User Documentation.
+     * The real path of the remote file depends on the Awake FILE configuration
+     * on the server. See User Documentation.
      * <p>
      * Large files are split in chunks that are downloaded in sequence. The
      * default chunk length is 10Mb. You can change the default value with
-     * {@link HttpProtocolParameters#setDownloadChunkLength(long)} before
-     * passing {@code HttpProtocolParameters} to this class constructor.
+     * {@link SessionParameters#setDownloadChunkLength(long)} before passing
+     * {@code SessionParameters} to this class constructor.
      * <p>
      * Note that file chunking requires that all chunks be downloaded from to
      * the same web server. Thus, file chunking does not support true stateless
      * architecture with multiple identical web servers. If you want to set a
      * full stateless architecture with multiple identical web servers, you must
      * disable file chunking. This is done by setting a 0 download chunk length
-     * value using {@link HttpProtocolParameters#setDownloadChunkLength(long)}.
-     * <br>
+     * value using {@link SessionParameters#setDownloadChunkLength(long)}. <br>
      * <br>
      * A recovery mechanism allows - in case of failure - to start again in the
      * same JVM run the file download from the last non-downloaded chunk. See
@@ -763,7 +803,8 @@ public class RemoteSession implements Cloneable {
      * </ul>
      * 
      * @param pathname
-     *            the pathname on host with "/" as file separator. Must be absolute.
+     *            the pathname on host with "/" as file separator. Must be
+     *            absolute.
      * @param file
      *            the file to create on the client side
      * @throws IllegalArgumentException
@@ -804,15 +845,16 @@ public class RemoteSession implements Cloneable {
 	}
 
 	if (getUsername() == null || getAuthenticationToken() == null) {
-	    throw new InvalidLoginException(RemoteSession.REMOTE_SESSION_IS_CLOSED);
+	    throw new InvalidLoginException(
+		    RemoteSession.REMOTE_SESSION_IS_CLOSED);
 	}
 
 	InputStream in = null;
 	OutputStream out = null;
 
-	// (IOUtils is a general IO stream manipulation utilities 
+	// (IOUtils is a general IO stream manipulation utilities
 	// provided by Apache Commons IO)
-	
+
 	try {
 	    in = new RemoteInputStream(this, pathname);
 	    out = new BufferedOutputStream(new FileOutputStream(file));
@@ -825,20 +867,19 @@ public class RemoteSession implements Cloneable {
 	    IOUtils.closeQuietly(out);
 	}
     }
-    
-    
+
     /**
      * Uploads a file on the server. <br>
      * This method simply wraps bytes copy from a {@code FileInputStream} to a
      * {@link RemoteOutputStream}.
      * <p>
-     * The real path of the remote file depends on the Awake FILE
-     * configuration on the server. See User Documentation.
+     * The real path of the remote file depends on the Awake FILE configuration
+     * on the server. See User Documentation.
      * <p>
      * Large files are split in chunks that are uploaded in sequence. The
-     * default chunk length is 3Mb. You can change the default value with
-     * {@link HttpProtocolParameters#setUploadChunkLength(long)} before passing
-     * {@code HttpProtocolParameters} to this class constructor.
+     * default chunk length is 10Mb. You can change the default value with
+     * {@link SessionParameters#setUploadChunkLength(long)} before passing
+     * {@code SessionParameters} to this class constructor.
      * <p>
      * Note that file chunking requires all chunks to be sent to the same web
      * server that will aggregate the chunks after the last send. Thus, file
@@ -846,7 +887,7 @@ public class RemoteSession implements Cloneable {
      * identical web servers. If you want to set a full stateless architecture
      * with multiple identical web servers, you must disable file chunking. This
      * is done by setting a 0 upload chunk length value using
-     * {@link HttpProtocolParameters#setUploadChunkLength(long)}. <br>
+     * {@link SessionParameters#setUploadChunkLength(long)}. <br>
      * <br>
      * A recovery mechanism allows - in case of failure - to start again in the
      * same JVM run the file upload from the last non-uploaded chunk. See User
@@ -865,7 +906,8 @@ public class RemoteSession implements Cloneable {
      * @param file
      *            the file to upload
      * @param pathname
-     *            the pathname on host with "/" as file separator. Must be absolute.
+     *            the pathname on host with "/" as file separator. Must be
+     *            absolute.
      * @throws IllegalArgumentException
      *             if file or pathname is null
      * @throws InvalidLoginException
@@ -909,7 +951,8 @@ public class RemoteSession implements Cloneable {
 	}
 
 	if (getUsername() == null || getAuthenticationToken() == null) {
-	    throw new InvalidLoginException(RemoteSession.REMOTE_SESSION_IS_CLOSED);
+	    throw new InvalidLoginException(
+		    RemoteSession.REMOTE_SESSION_IS_CLOSED);
 	}
 
 	InputStream in = null;
@@ -931,7 +974,6 @@ public class RemoteSession implements Cloneable {
 	}
     }
 
-    
     /**
      * Returns the Java version of the the servlet container on the remote
      * server <br>
@@ -961,11 +1003,10 @@ public class RemoteSession implements Cloneable {
      * @throws IOException
      *             for all other IO / Network / System Error
      */
-    public String getRemoteJavaVersion() 
-	    throws InvalidLoginException,
+    public String getRemoteJavaVersion() throws InvalidLoginException,
 	    UnknownHostException, ConnectException, SocketException,
 	    RemoteException, IOException {
-	
+
 	if (username == null || authenticationToken == null) {
 	    throw new InvalidLoginException(REMOTE_SESSION_IS_CLOSED);
 	}
@@ -974,12 +1015,13 @@ public class RemoteSession implements Cloneable {
 	if (remoteJavaVersion != null) {
 	    return remoteJavaVersion;
 	}
-	
+
 	// Prepare the request parameters
 	List<SimpleNameValuePair> requestParams = new Vector<SimpleNameValuePair>();
 	requestParams.add(new SimpleNameValuePair(Parameter.ACTION,
 		Action.GET_JAVA_VERSION));
-	requestParams.add(new SimpleNameValuePair(Parameter.USERNAME, username));
+	requestParams
+		.add(new SimpleNameValuePair(Parameter.USERNAME, username));
 	requestParams.add(new SimpleNameValuePair(Parameter.TOKEN,
 		authenticationToken));
 
@@ -998,7 +1040,7 @@ public class RemoteSession implements Cloneable {
 	    return remoteJavaVersion;
 	}
     }
-    
+
     /**
      * Allows to get a copy of the current <code>RemoteSession</code>: use it to
      * do some simultaneous operations in a different thread (in order to avoid
@@ -1007,8 +1049,9 @@ public class RemoteSession implements Cloneable {
     @Override
     public RemoteSession clone() {
 	RemoteSession remoteSession = new RemoteSession(this.url,
-		this.username, this.authenticationToken, this.proxy, this.passwordAuthentication,
-		this.httpProtocolParameters, this.remoteJavaVersion);
+		this.username, this.authenticationToken, this.proxy,
+		this.passwordAuthentication, this.sessionParameters,
+		this.remoteJavaVersion);
 	return remoteSession;
     }
 
@@ -1033,8 +1076,9 @@ public class RemoteSession implements Cloneable {
 
 	proxy = null;
 	passwordAuthentication = null;
-	httpProtocolParameters = null;
-
+	sessionParameters = null;
+	remoteJavaVersion = null;
+	
 	if (httpTransfer != null) {
 	    httpTransfer.close();
 	    httpTransfer = null;
@@ -1190,7 +1234,8 @@ public class RemoteSession implements Cloneable {
 		Action.CALL_ACTION));
 	// requestParams.add(new SimpleNameValuePair(Parameter.LOGIN,
 	// StringUtil.toBase64(username)));
-	requestParams.add(new SimpleNameValuePair(Parameter.USERNAME, username));
+	requestParams
+		.add(new SimpleNameValuePair(Parameter.USERNAME, username));
 	requestParams.add(new SimpleNameValuePair(Parameter.TOKEN,
 		authenticationToken));
 	requestParams.add(new SimpleNameValuePair(Parameter.METHOD_NAME,
@@ -1228,9 +1273,9 @@ public class RemoteSession implements Cloneable {
 
     }
 
-
-
-    /* (non-Javadoc)
+    /*
+     * (non-Javadoc)
+     * 
      * @see java.lang.Object#hashCode()
      */
     @Override
@@ -1247,7 +1292,9 @@ public class RemoteSession implements Cloneable {
 	return result;
     }
 
-    /* (non-Javadoc)
+    /*
+     * (non-Javadoc)
+     * 
      * @see java.lang.Object#equals(java.lang.Object)
      */
     @Override
@@ -1277,7 +1324,6 @@ public class RemoteSession implements Cloneable {
 	return true;
     }
 
-    
     /*
      * (non-Javadoc)
      * 
@@ -1287,8 +1333,8 @@ public class RemoteSession implements Cloneable {
     public String toString() {
 	return "RemoteSession [url=" + url + ", username=" + username
 		+ ", proxy=" + proxy + ", passwordAuthentication="
-		+ passwordAuthentication + ", httpProtocolParameters="
-		+ httpProtocolParameters + "]";
+		+ passwordAuthentication + ", SessionParameters="
+		+ sessionParameters + "]";
     }
 
     /**
@@ -1300,8 +1346,6 @@ public class RemoteSession implements Cloneable {
 	}
     }
 
-
-    
 }
 
 // End

@@ -114,7 +114,9 @@ public class EngineDownloadBigFilesNew {
 	
 	chrono.end();
 	
-	ShaComparator.compare(filesDownload, Arrays.asList(bigFiles_2));
+	if (TestParms.TEST_BIG_FILES_SHA) {
+	    ShaComparator.compare(filesDownload, Arrays.asList(bigFiles_2));
+	}
 	
 	System.out.println("Done.");
     }

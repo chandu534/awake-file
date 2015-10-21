@@ -31,7 +31,7 @@ import java.io.ObjectInputStream;
 import java.io.ObjectOutputStream;
 
 import org.apache.commons.io.IOUtils;
-import org.kawanfw.commons.api.client.HttpProtocolParameters;
+import org.kawanfw.commons.api.client.SessionParameters;
 import org.kawanfw.commons.util.Base64;
 
 /**
@@ -44,7 +44,7 @@ import org.kawanfw.commons.util.Base64;
  * Allows to serialize any serializable class instance to base64 string
  * with serialization and to get back the instance with deserialization.
  * <br><br>
- * The {@link #toPropertyValue(Object)} allows to serialize a {@link HttpProxy} or {@link HttpProtocolParameters} instance and to
+ * The {@link #toPropertyValue(Object)} allows to serialize a {@link HttpProxy} or {@link SessionParameters} instance and to
  * pass the serialized instance as a property value to the {@link RemoteDriver}.
  * 
  */

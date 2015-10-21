@@ -34,7 +34,7 @@ import java.util.List;
 
 import org.apache.commons.io.FileUtils;
 import org.apache.commons.lang3.SystemUtils;
-import org.kawanfw.commons.api.client.HttpProtocolParameters;
+import org.kawanfw.commons.api.client.SessionParameters;
 import org.kawanfw.commons.util.FrameworkFileUtil;
 import org.kawanfw.file.api.client.FileSession;
 import org.kawanfw.file.api.client.UrlSession;
@@ -70,6 +70,10 @@ public class TestRunnerConsole {
 	new DeleteAll().test(fileSession);
 	new CallTest().test(fileSession);
 	new MkdirsRemote().test(fileSession);
+	
+	//Thread.sleep(3000);
+	//if (true) System.exit(1);
+		
 	new UploadFiles().test(fileSession);	
 	new DownloadFiles().test(fileSession);
 	new RenameFiles().test(fileSession);
@@ -77,43 +81,24 @@ public class TestRunnerConsole {
     }
 
     public static void startIt() throws Exception {
+	
 	if (SystemUtils.IS_JAVA_1_7) {
 	    System.setProperty("java.net.preferIPv4Stack", "true");
 	}
-
-//	boolean useProxy = false;
-//	HttpProxy httpProxy = null;
-//
-//	if (SystemUtils.IS_JAVA_1_6) {
-//	    DefaultHttpProxyDetector defaultHttpProxyDetector = new DefaultHttpProxyDetector();
-//	    if (defaultHttpProxyDetector.getAddress() != null) {
-//		useProxy = true;
-//	    }
-//	}
-//	else {
-//	    
-//	    if (!FrameworkSystemUtil.isAndroid()) {
-//		useProxy = TestParms.USE_PROXY ? true : false;
-//	    }
-//	}
-//
-//	if (useProxy) {
-//	    httpProxy = new ProxyLoader().getProxy();
-//	}
 	
 	ProxyLoader proxyLoader = new ProxyLoader();
 	Proxy proxy = proxyLoader.getProxy();
 	PasswordAuthentication passwordAuthentication = proxyLoader.getPasswordAuthentication();
-	HttpProtocolParameters httpProtocolParameters = new HttpProtocolParameters();
+	SessionParameters sessionParameters = new SessionParameters();
 	
-	httpProtocolParameters.setCompressionOn(true);
+	sessionParameters.setCompressionOn(true);
 
 	while (true) {
 
 	    FileSession fileSession = new FileSession(
 		    TestParms.AWAKE_URL, TestParms.REMOTE_USER,
 		    TestParms.REMOTE_PASSWORD.toCharArray(), proxy, passwordAuthentication,
-		    httpProtocolParameters);
+		    sessionParameters);
 	   	    
 	    System.out.println(new Date());
 	    

@@ -41,16 +41,23 @@ public class DefaultParms {
     public static final int KB = 1024;
     /** Defines one megabyte */
     public static final int MB = 1024 * KB;
+    
+    // BEGIN VALUES NOT MODIFIED BY SESSION PARAMETERS
+    /** The default buffer size when reading a file */
+    public static final int DEFAULT_READ_BUFFER_SIZE = 4 * KB;
+    
+    /** The default Buffer size when writing a file */
+    public static final int DEFAULT_WRITE_BUFFER_SIZE = 4 * KB;
+    
+    /** The chunklen to HttpUrlConnection.setChunkedStreamingMode(int chunklen) */
+    public static final int DEFAULT_STREAMING_MODE_CHUNKLEN = 1024;
+    // END VALUES NOT MODIFIED BY SESSION PARAMETERS
+    
+    
     /**
      * The default maximum authorized length for a string for upload or download
      */
     public static final int DEFAULT_MAX_LENGTH_FOR_STRING = 2 * MB;
-    
-    /** The default buffer size when uploading a file */
-    public static final int DEFAULT_UPLOAD_BUFFER_SIZE = 4 * KB;
-    
-    /** The default Buffer size for download and copy */
-    public static final int DEFAULT_DOWNLOAD_BUFFER_SIZE = 4 * KB;
     
     /** The default behavior for html encoding */
     public static final boolean DEFAULT_HTML_ENCODING_ON = true;
@@ -59,10 +66,10 @@ public class DefaultParms {
     public static final boolean ACCEPT_ALL_SSL_CERTIFICATES = false;
 
     public static final long DEFAULT_DOWNLOAD_CHUNK_LENGTH = 10 * MB;
-    public static final long DEFAULT_UPLOAD_CHUNK_LENGTH = 3 * MB;
+    public static final long DEFAULT_UPLOAD_CHUNK_LENGTH = 10 * MB;
     
     /** Http content compression */
-    public static final boolean DEFAULT_COMPRESSION_ON = false;
+    public static final boolean DEFAULT_COMPRESSION_ON = true;
     
     /** Color used by servlet display in all KwanSoft Frameworks */
     public static final String KAWANSOFT_COLOR = "E7403E";

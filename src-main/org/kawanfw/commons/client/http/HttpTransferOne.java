@@ -22,7 +22,7 @@
  * Any modifications to this file must keep this entire header
  * intact.
  */
-package org.kawanfw.commons.http;
+package org.kawanfw.commons.client.http;
 
 import java.io.BufferedOutputStream;
 import java.io.BufferedReader;
@@ -65,8 +65,8 @@ import javax.net.ssl.X509TrustManager;
 
 import org.apache.commons.io.FileUtils;
 import org.apache.commons.io.IOUtils;
-import org.kawanfw.commons.api.client.HttpProtocolParameters;
 import org.kawanfw.commons.api.client.RemoteException;
+import org.kawanfw.commons.api.client.SessionParameters;
 import org.kawanfw.commons.util.ClientLogger;
 import org.kawanfw.commons.util.DefaultParms;
 import org.kawanfw.commons.util.FrameworkDebug;
@@ -107,7 +107,7 @@ public class HttpTransferOne implements HttpTransfer {
     private String url = null;
 
     /** The Http Parameters instance */
-    private HttpProtocolParameters httpProtocolParameters = null;
+    private SessionParameters sessionParameters = null;
 
     /** If true, all results will be received in a temp file */
     private boolean doReceiveInFile = false;
@@ -132,7 +132,7 @@ public class HttpTransferOne implements HttpTransfer {
     
     /** For authenticated proxy */
     private PasswordAuthentication passwordAuthentication = null;
-
+    	
     /**
      * Default constructor.&nbsp;
      * <p>
@@ -140,17 +140,17 @@ public class HttpTransferOne implements HttpTransfer {
      * @param url
      *            the URL path to the Sql Manager Servlet
      * @param proxy
-     *            the proxy to use, null for direct access
+     *            the proxy to use, may be null for direct access
      * @param passwordAuthentication
-     *            the proxy credentials, null if proxy does not require
+     *            the proxy credentials, null if no proxy or if the proxy does not require
      *            authentication
-     * @param httpProtocolParameters
+     * @param sessionParameters
      *            the http protocol supplementary parameters (may be null for
      *            default settings)
      */
     public HttpTransferOne(String url, Proxy proxy,
 	    PasswordAuthentication passwordAuthentication,
-	    HttpProtocolParameters httpProtocolParameters) {
+	    SessionParameters sessionParameters) {
 
 	if (url == null) {
 	    throw new IllegalArgumentException("url is null!");
@@ -159,17 +159,16 @@ public class HttpTransferOne implements HttpTransfer {
 	this.url = url;
 	this.proxy = proxy;
 	this.passwordAuthentication = passwordAuthentication;
-	this.httpProtocolParameters = httpProtocolParameters;
+	this.sessionParameters = sessionParameters;
 
 
-	if (httpProtocolParameters != null) {
-	    this.connectTimeout = httpProtocolParameters.getConnectTimeout();
-	    this.readTimeout = httpProtocolParameters.getReadTimeout();
+	if (sessionParameters != null) {
+	    this.connectTimeout = sessionParameters.getConnectTimeout();
+	    this.readTimeout = sessionParameters.getReadTimeout();
 
-	    if (httpProtocolParameters.isAcceptAllSslCertificates()) {
+	    if (sessionParameters.isAcceptAllSslCertificates()) {
 		acceptSelfSignedSslCert();
 	    }
-
 	}
 
 	setProxyCredentials();
@@ -191,23 +190,23 @@ public class HttpTransferOne implements HttpTransfer {
 	    return;
 	}
 
-	// Sets the proxy
-	if (proxy != null) {
+	// Sets the credential for authentication
+	if (passwordAuthentication != null) {
+	    final String proxyAuthUsername = passwordAuthentication
+		    .getUserName();
+	    final char[] proxyPassword = passwordAuthentication.getPassword();
 
-	    if (passwordAuthentication != null) {
-		final String proxyAuthUsername = passwordAuthentication.getUserName();
-		final char [] proxyPassword = passwordAuthentication.getPassword();
+	    Authenticator authenticator = new Authenticator() {
 
-		Authenticator authenticator = new Authenticator() {
+		public PasswordAuthentication getPasswordAuthentication() {
+		    return new PasswordAuthentication(proxyAuthUsername,
+			    proxyPassword);
+		}
+	    };
 
-		    public PasswordAuthentication getPasswordAuthentication() {
-			return new PasswordAuthentication(proxyAuthUsername, proxyPassword);
-		    }
-		};
-
-		Authenticator.setDefault(authenticator);
-	    }
+	    Authenticator.setDefault(authenticator);
 	}
+	
     }
 
     /**
@@ -216,20 +215,20 @@ public class HttpTransferOne implements HttpTransfer {
      * 
      * @param httpProxy
      *            the proxy (may be null for default settings)
-     * @param httpProtocolParameters
+     * @param sessionParameters
      *            the http protocol supplementary parameters
      */
     public HttpTransferOne(Proxy proxy,
 	    PasswordAuthentication passwordAuthentication,
-	    HttpProtocolParameters httpProtocolParameters) {
+	    SessionParameters sessionParameters) {
 	
 	this.proxy = proxy;
 	this.passwordAuthentication = passwordAuthentication;
-	this.httpProtocolParameters = httpProtocolParameters;
+	this.sessionParameters = sessionParameters;
 
-	if (httpProtocolParameters != null) {
-	    this.connectTimeout = httpProtocolParameters.getConnectTimeout();
-	    this.readTimeout = httpProtocolParameters.getReadTimeout();
+	if (sessionParameters != null) {
+	    this.connectTimeout = sessionParameters.getConnectTimeout();
+	    this.readTimeout = sessionParameters.getReadTimeout();
 	}
 
     }
@@ -260,8 +259,8 @@ public class HttpTransferOne implements HttpTransfer {
 	    conn = (HttpURLConnection) url.openConnection(proxy);
 	}
 
-	if (httpProtocolParameters != null) {
-	    boolean compressionOn = httpProtocolParameters.isCompressionOn();
+	if (sessionParameters != null) {
+	    boolean compressionOn = sessionParameters.isCompressionOn();
 	    if (compressionOn) {
 		conn.setRequestProperty("Accept-Encoding", "gzip");
 	    }
@@ -312,15 +311,16 @@ public class HttpTransferOne implements HttpTransfer {
 	    conn = buildHttpUrlConnection(theUrl);
 	    conn.setRequestMethod(POST);
 	    conn.setDoOutput(true);
-
+	    
 	    // We need to Html convert & maybe encrypt the parameters
 	    SimpleNameValuePairConvertor simpleNameValuePairConvertor = new SimpleNameValuePairConvertor(
-		    requestParams, httpProtocolParameters);
+		    requestParams, sessionParameters);
 	    requestParams = simpleNameValuePairConvertor.convert();
-
 	    debug("requestParams: " + requestParams);
-
-	    OutputStream os = conn.getOutputStream();
+	    
+	    TimeoutConnector timeoutConnector = new TimeoutConnector(conn, connectTimeout);
+	    OutputStream os = timeoutConnector.getOutputStream();
+	     	    
 	    BufferedWriter writer = new BufferedWriter(new OutputStreamWriter(
 		    os, "UTF-8"));
 	    writer.write(getPostDataString(requestParams));
@@ -375,7 +375,7 @@ public class HttpTransferOne implements HttpTransfer {
 
 	    // We need to Html convert & maybe encrypt the parameters
 	    SimpleNameValuePairConvertor simpleNameValuePairConvertor = new SimpleNameValuePairConvertor(
-		    requestParams, httpProtocolParameters);
+		    requestParams, sessionParameters);
 	    requestParams = simpleNameValuePairConvertor.convert();
 
 	    theUrl = new URL(this.url);
@@ -384,8 +384,10 @@ public class HttpTransferOne implements HttpTransfer {
 	    conn.setRequestMethod(POST);
 	    conn.setDoOutput(true);
 
+	    conn.setChunkedStreamingMode(DefaultParms.DEFAULT_STREAMING_MODE_CHUNKLEN);
+	    
 	    final MultipartUtility http = new MultipartUtility(theUrl, conn,
-		    httpProtocolParameters);
+		    sessionParameters);
 
 	    for (SimpleNameValuePair basicNameValuePair : requestParams) {
 		http.addFormField(basicNameValuePair.getName(),
@@ -395,8 +397,8 @@ public class HttpTransferOne implements HttpTransfer {
 	    http.addFilePart("file", file);
 	    http.finish();
 
-	    HttpURLConnection httpUrlConnection = http.getConnection();
-	    getAndAnalyzeResponse(httpUrlConnection);
+	    conn = http.getConnection();
+	    getAndAnalyzeResponse(conn);
 
 	} finally {
 	    // Reset doReceiveInFile
@@ -638,7 +640,9 @@ public class HttpTransferOne implements HttpTransfer {
 
 	debug("requestParams: " + requestParams);
 
-	OutputStream os = conn.getOutputStream();
+	TimeoutConnector timeoutConnector = new TimeoutConnector(conn, connectTimeout);
+	OutputStream os = timeoutConnector.getOutputStream();
+	    
 	Writer writer = new BufferedWriter(new OutputStreamWriter(os, "UTF-8"));
 	writer.write(getPostDataString(requestParams));
 
@@ -672,6 +676,7 @@ public class HttpTransferOne implements HttpTransfer {
     public void close() {
 	if (this.conn != null) {
 	    this.conn.disconnect();
+	    this.conn = null;
 	}
     }
 
@@ -721,6 +726,12 @@ public class HttpTransferOne implements HttpTransfer {
 
 	    conn = buildHttpUrlConnection(url);
 	    conn.setRequestMethod(GET);
+	    
+	    if ("gzip".equals(conn.getContentEncoding())) {
+		in = new GZIPInputStream(conn.getInputStream());
+	    } else {
+		in = conn.getInputStream();
+	    }
 
 	    // Analyze the error after request execution
 	    statusCode = conn.getResponseCode();
@@ -731,12 +742,6 @@ public class HttpTransferOne implements HttpTransfer {
 			+ conn.getResponseMessage() + " status: " + statusCode);
 	    }
 	    
-	    if ("gzip".equals(conn.getContentEncoding())) {
-		in = new GZIPInputStream(conn.getInputStream());
-	    } else {
-		in = conn.getInputStream();
-	    }
-
 	    out = new BufferedOutputStream(new FileOutputStream(file));
 
 	    byte[] buf = new byte[4096];
@@ -804,6 +809,12 @@ public class HttpTransferOne implements HttpTransfer {
 	    conn = buildHttpUrlConnection(url);
 	    conn.setRequestMethod(GET);
 
+	    if ("gzip".equals(conn.getContentEncoding())) {
+		in = new GZIPInputStream(conn.getInputStream());
+	    } else {
+		in = conn.getInputStream();
+	    }
+	    
 	    // Analyze the error after request execution
 	    statusCode = conn.getResponseCode();
 
@@ -812,24 +823,16 @@ public class HttpTransferOne implements HttpTransfer {
 		throw new ConnectException(url + ": Servlet failed: "
 			+ conn.getResponseMessage() + " status: " + statusCode);
 	    }
-
-	    if ("gzip".equals(conn.getContentEncoding())) {
-		in = new GZIPInputStream(conn.getInputStream());
-	    } else {
-		in = conn.getInputStream();
-	    }
-
-	    int downloadBufferSize = DefaultParms.DEFAULT_DOWNLOAD_BUFFER_SIZE;
+	    
+	    int writeBufferSize = DefaultParms.DEFAULT_WRITE_BUFFER_SIZE;
 	    int maxLengthForString = DefaultParms.DEFAULT_MAX_LENGTH_FOR_STRING;
-	    if (httpProtocolParameters != null) {
-		downloadBufferSize = httpProtocolParameters
-			.getDownloadBufferSize();
-		maxLengthForString = httpProtocolParameters
+	    if (sessionParameters != null) {
+		maxLengthForString = sessionParameters
 			.getMaxLengthForString();
 	    }
 
 	    ByteArrayOutputStream out = new ByteArrayOutputStream();
-	    byte[] buf = new byte[downloadBufferSize];
+	    byte[] buf = new byte[writeBufferSize];
 	    int len = 0;
 	    int totalLen = 0;
 	    while ((len = in.read(buf)) > 0) {

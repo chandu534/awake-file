@@ -30,7 +30,7 @@ import java.sql.SQLException;
 import java.util.Date;
 
 import org.apache.commons.lang3.SystemUtils;
-import org.kawanfw.commons.api.client.HttpProtocolParameters;
+import org.kawanfw.commons.api.client.SessionParameters;
 import org.kawanfw.commons.util.FrameworkSystemUtil;
 import org.kawanfw.file.api.client.RemoteSession;
 import org.kawanfw.file.test.api.client.nio.CallTestNio;
@@ -59,7 +59,7 @@ public class TestRunnerConsoleNio {
     public static void testAll(RemoteSession remoteSession)
 	    throws Exception, SQLException {
 	
-	TestRunnerConsole.startIt();
+	//TestRunnerConsole.startIt();
 	
 	MessageDisplayer.display("");
 	MessageDisplayer.display("Local Java Version : "
@@ -74,9 +74,10 @@ public class TestRunnerConsoleNio {
 	
 	new DeleteAllNio().test(remoteSession);
 	new CallTestNio().test(remoteSession);
+	
 	new MkdirsRemoteNio().test(remoteSession);
 		
-	new UploadFilesNio().test(remoteSession);	
+	new UploadFilesNio().test(remoteSession);
 	new DownloadFilesNio().test(remoteSession);
 	new RenameFilesNio().test(remoteSession);
 
@@ -97,41 +98,17 @@ public class TestRunnerConsoleNio {
 	    System.setProperty("java.net.preferIPv4Stack", "true");
 	}
 
-//	boolean useProxy = false;
-//	HttpProxy httpProxy = null;
-//
-//	MessageDisplayer.display(new Date());
-//	MessageDisplayer.display("Proxy Detection...");
-//	if (SystemUtils.IS_JAVA_1_6) {
-//	    DefaultHttpProxyDetector defaultHttpProxyDetector = new DefaultHttpProxyDetector();
-//	    if (defaultHttpProxyDetector.getAddress() != null) {
-//		MessageDisplayer.display("useProxy = true...");
-//		useProxy = true;
-//	    }
-//	}
-//	else {
-//	    
-//	    if (!FrameworkSystemUtil.isAndroid()) {
-//		useProxy = TestParms.USE_PROXY ? true : false;
-//	    }
-//	}
-//
-//	if (useProxy) {
-//	    MessageDisplayer.display("new ProxyLoader().getProxy()...");
-//	    httpProxy = new ProxyLoader().getProxy();
-//	}
-
 	ProxyLoader proxyLoader = new ProxyLoader();
 	Proxy proxy = proxyLoader.getProxy();
 	PasswordAuthentication passwordAuthentication = proxyLoader.getPasswordAuthentication();
-	HttpProtocolParameters httpProtocolParameters = new HttpProtocolParameters();
+	SessionParameters sessionParameters = new SessionParameters();
 	
 	if (TestParms.AWAKE_URL.startsWith("https:") && TestParms.AWAKE_URL.contains("localhost"))
 	{
-	    httpProtocolParameters.setAcceptAllSslCertificates(true);
+	    sessionParameters.setAcceptAllSslCertificates(true);
 	}
 	
-	httpProtocolParameters.setCompressionOn(TestParms.COMPRESSION_ON);
+	sessionParameters.setCompressionOn(TestParms.COMPRESSION_ON);
 
 	while (true) {
 
@@ -141,7 +118,7 @@ public class TestRunnerConsoleNio {
 	    remoteSession = new RemoteSession(TestParms.AWAKE_URL,
 		    TestParms.REMOTE_USER,
 		    TestParms.REMOTE_PASSWORD.toCharArray(), proxy, passwordAuthentication,
-		    httpProtocolParameters);
+		    sessionParameters);
 	   	    
 	    MessageDisplayer.display(new Date());
 	   

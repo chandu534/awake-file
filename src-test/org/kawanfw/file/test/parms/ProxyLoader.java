@@ -27,7 +27,6 @@ package org.kawanfw.file.test.parms;
 import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.IOException;
-import java.net.InetSocketAddress;
 import java.net.PasswordAuthentication;
 import java.net.Proxy;
 import java.net.ProxySelector;
@@ -70,6 +69,12 @@ public class ProxyLoader {
 		new URI("http://www.google.com/"));
 	       
 	if (proxies != null && proxies.size() >= 1) {
+	    
+	    System.out.println("Proxy in use: " + proxies.get(0));
+	    
+	    if (proxies.get(0).type().equals(Proxy.Type.DIRECT)) {
+		return null;
+	    }
 	    
 	    System.out.println("Loading proxy file info...");
 	    // System.setProperty("java.net.useSystemProxies", "false");

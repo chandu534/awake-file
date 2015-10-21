@@ -59,9 +59,9 @@ public class RemoteSessionExceptionDecoder {
      * @param password
      *            password
 	 * @param proxy
-     *            the proxy to use, null for direct access
+     *            the proxy to use, may be null for direct access
      * @param passwordAuthentication
-     *            the proxy credentials, null if proxy does not require authentication
+     *            the proxy credentials, null if no proxy or if the proxy does not require authentication
      */
     public RemoteSessionExceptionDecoder(String url, String username,
 	    char[] password, Proxy proxy, PasswordAuthentication passwordAuthentication) {

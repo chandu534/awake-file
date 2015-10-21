@@ -39,7 +39,7 @@ import java.util.logging.Level;
 import org.apache.commons.io.FileUtils;
 import org.kawanfw.commons.api.client.InvalidLoginException;
 import org.kawanfw.commons.api.client.RemoteException;
-import org.kawanfw.commons.http.SimpleNameValuePair;
+import org.kawanfw.commons.client.http.SimpleNameValuePair;
 import org.kawanfw.commons.util.ClientLogger;
 import org.kawanfw.commons.util.FrameworkDebug;
 import org.kawanfw.commons.util.FrameworkFileUtil;

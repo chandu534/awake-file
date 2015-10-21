@@ -11,23 +11,21 @@ Awake FILE requires JDK 1.6+.
 Installation - Client Side
 --------------------------
 
-The /lib directory contains the Awake FILE library 
-awake-file-3.1.jar.
-The /lib-dependencies directory contains the dependencies.
+The /lib-client directory contains the client side Awake FILE library 
+awake-file-client 3.1.jar and the dependencies.
 
-Add all the jars of /lib & /lib-dependencies subdirectories to your 
-development CLASSPATH.
+Add all the jars of /lib-client subdirectory to your client project.
 
 
 Installation - Server Side
 --------------------------
 
-The /lib directory contains the Awake FILE library 
-awake-file-3.1.jar.
-The /lib-dependencies directory contains the dependencies.
+The /lib-server directory contains the server side Awake FILE library 
+awake-file-server-3.1.jar and the dependencies.
 
-Add all the jars of /lib & /lib-dependencies subdirectories to your 
-development CLASSPATH and on your Servlet container.
+Add all the jars of /lib-server subdirectory to your server project and
+to the WEB-INF/lib of your servlet container.
+
 
 
 Feedback

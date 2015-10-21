@@ -52,8 +52,8 @@ public class ChunkUtil {
     public static long getDownloadChunkLength(RemoteSession remoteSession) {
         long chunkLength = DefaultParms.DEFAULT_DOWNLOAD_CHUNK_LENGTH;
     
-        if (remoteSession.getHttpProtocolParameters() != null) {
-            chunkLength = remoteSession.getHttpProtocolParameters()
+        if (remoteSession.getSessionParameters() != null) {
+            chunkLength = remoteSession.getSessionParameters()
         	    .getDownloadChunkLength();
         }
         return chunkLength;
@@ -68,8 +68,8 @@ public class ChunkUtil {
     public static long getUploadChunkLength(RemoteSession remoteSession) {
         long chunkLength = DefaultParms.DEFAULT_UPLOAD_CHUNK_LENGTH;
     
-        if (remoteSession.getHttpProtocolParameters() != null) {
-            chunkLength = remoteSession.getHttpProtocolParameters()
+        if (remoteSession.getSessionParameters() != null) {
+            chunkLength = remoteSession.getSessionParameters()
         	    .getUploadChunkLength();
         }
         return chunkLength;

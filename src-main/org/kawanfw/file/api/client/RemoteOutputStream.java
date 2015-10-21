@@ -37,7 +37,7 @@ import java.util.Date;
 import java.util.logging.Level;
 
 import org.apache.commons.io.FileUtils;
-import org.kawanfw.commons.api.client.HttpProtocolParameters;
+import org.kawanfw.commons.api.client.SessionParameters;
 import org.kawanfw.commons.api.client.InvalidLoginException;
 import org.kawanfw.commons.api.client.RemoteException;
 import org.kawanfw.commons.util.ClientLogger;
@@ -58,9 +58,9 @@ import org.kawanfw.file.api.util.client.UniqueFileCreator;
  * {@code RemoteOutputStream} with standards {@code OutputStream} write methods. <br>
  * <br>
  * Large streams are split in chunks that are uploaded in sequence. The default
- * chunk length is 3Mb. You can change the default value with
- * {@link HttpProtocolParameters#setUploadChunkLength(long)} before passing
- * {@code HttpProtocolParameters} to this {@link RemoteSession} constructor.
+ * chunk length is 10Mb. You can change the default value with
+ * {@link SessionParameters#setUploadChunkLength(long)} before passing
+ * {@code SessionParameters} to this {@link RemoteSession} constructor.
  * <p>
  * Note that stream chunking requires all chunks to be sent to the same web
  * server that will aggregate the chunks on the same file. Thus, stream chunking
@@ -68,7 +68,7 @@ import org.kawanfw.file.api.util.client.UniqueFileCreator;
  * servers. If you want to set a full stateless architecture with multiple
  * identical web servers, you must disable file chunking. This is done by
  * setting a 0 upload chunk length value using
- * {@link HttpProtocolParameters#setUploadChunkLength(long)}. <br>
+ * {@link SessionParameters#setUploadChunkLength(long)}. <br>
  * <br>
  * A recovery mechanism allows - in case of failure - to start again in the same
  * JVM run the data upload from the last non-uploaded chunk. The recovery
@@ -555,7 +555,7 @@ public class RemoteOutputStream extends OutputStream {
 	    UnknownHostException, ConnectException, SocketException,
 	    RemoteException {
 
-	// Upload files in chunk, creating temporary file with default size 3Mb
+	// Upload files in chunk, creating temporary file with default size 10Mb
 	RemoteFilePartStore remoteFilePartStore = new RemoteFilePartStore(
 		remoteSession.getUsername(), file, remoteFile);
 

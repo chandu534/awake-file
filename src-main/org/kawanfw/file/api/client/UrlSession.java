@@ -33,9 +33,9 @@ import java.net.URL;
 import java.net.UnknownHostException;
 import java.util.logging.Level;
 
-import org.kawanfw.commons.api.client.HttpProtocolParameters;
-import org.kawanfw.commons.http.HttpTransfer;
-import org.kawanfw.commons.http.HttpTransferUtil;
+import org.kawanfw.commons.api.client.SessionParameters;
+import org.kawanfw.commons.client.http.HttpTransfer;
+import org.kawanfw.commons.client.http.HttpTransferUtil;
 import org.kawanfw.commons.util.ClientLogger;
 import org.kawanfw.commons.util.FrameworkDebug;
 import org.kawanfw.file.version.FileVersion;
@@ -68,24 +68,24 @@ public class UrlSession {
      * <p>
      * 
      * @param proxy
-     *            the proxy to use, null for direct access
+     *            the proxy to use, may be null for direct access
      * @param passwordAuthentication
-     *            the proxy credentials, null if proxy does not require
+     *            the proxy credentials, null if no proxy or if the proxy does not require
      *            authentication
      * 
-     * @param httpProtocolParameters
+     * @param sessionParameters
      *            the http parameters to use
      * 
      */
     public UrlSession(Proxy proxy,
 	    PasswordAuthentication passwordAuthentication,
-	    HttpProtocolParameters httpProtocolParameters)
+	    SessionParameters sessionParameters)
 	    throws IllegalArgumentException {
 	this.proxy = proxy;
 	this.passwordAuthentication = passwordAuthentication;
 
 	httpTransfer = HttpTransferUtil.HttpTransferFactory(proxy,
-		passwordAuthentication, httpProtocolParameters);
+		passwordAuthentication, sessionParameters);
     }
 
     /**
@@ -93,9 +93,9 @@ public class UrlSession {
      * <p>
      * 
      * @param proxy
-     *            the proxy to use, null for direct access
+     *            the proxy to use, may be null for direct access
      * @param passwordAuthentication
-     *            the proxy credentials, null if proxy does not require
+     *            the proxy credentials, null if no proxy or if the proxy does not require
      *            authentication
      */
     public UrlSession(Proxy proxy, PasswordAuthentication passwordAuthentication) {

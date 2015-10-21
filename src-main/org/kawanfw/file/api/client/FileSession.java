@@ -40,11 +40,11 @@ import java.util.logging.Level;
 
 import org.apache.commons.io.filefilter.DirectoryFileFilter;
 import org.apache.commons.io.filefilter.FileFileFilter;
-import org.kawanfw.commons.api.client.HttpProtocolParameters;
 import org.kawanfw.commons.api.client.InvalidLoginException;
 import org.kawanfw.commons.api.client.RemoteException;
-import org.kawanfw.commons.http.HttpTransfer;
-import org.kawanfw.commons.http.HttpTransferUtil;
+import org.kawanfw.commons.api.client.SessionParameters;
+import org.kawanfw.commons.client.http.HttpTransfer;
+import org.kawanfw.commons.client.http.HttpTransferUtil;
 import org.kawanfw.commons.util.ClientLogger;
 import org.kawanfw.commons.util.FrameworkDebug;
 import org.kawanfw.commons.util.Tag;
@@ -91,29 +91,52 @@ import org.kawanfw.file.version.FileVersion;
  * </pre>
  * 
  * </blockquote>
- * <p>
- * Communication via an (authenticating) proxy server is done using a
- * {@link org.kawanfw.commons.api.client.HttpProxy} instance:
+ * 
+ * Communication via a proxy server is done using
+ * {@code java.net.Proxy} and {@code java.net.PasswordAuthentication} for
+ * authentication.
  * 
  * <blockquote>
  * 
  * <pre>
- * HttpProxy httpProxy = new HttpProxy(&quot;myproxyhost&quot;, 8080);
- * String url = &quot;https://www.acme.org/ServerFileManager&quot;;
- * 
- * // The login info for strong authentication on server side:
- * String username = &quot;myUsername&quot;;
- * char[] password = { 'm', 'y', 'P', 'a', 's', 's', 'w', 'o', 'r', 'd' };
- * 
- * FileSession fileSession = new FileSession(url, username, password, httpProxy);
- * 
- * // Etc.
+	String url = "http://www.acme.org/ServerFileManager";
+	String username = "myUsername";
+	char[] password = "myPassword".toCharArray();
+
+	Proxy proxy = new Proxy(Proxy.Type.HTTP, new InetSocketAddress(
+		    "proxyHostname", 8080));
+	    
+	PasswordAuthentication passwordAuthentication = null;
+	
+	// If proxy requires authentication:
+	passwordAuthentication = new PasswordAuthentication("proxyUsername", "proxyPassword".toCharArray());
+	
+	FileSession fileSession = new FileSession(url, username,
+		password, proxy, passwordAuthentication);
+	// Etc.
  * </pre>
  * 
  * </blockquote>
  * 
+ * NTLM authentication is done using {@code PasswordAuthentication}:
  * 
- * @see org.kawanfw.commons.api.client.HttpProxy
+ * <blockquote>
+ * 
+ * <pre>
+	String url = "http://www.acme.org/ServerFileManager";
+	String username = "myUsername";
+	char[] password = "myPassword".toCharArray();
+
+	Proxy proxy = Proxy.NO_PROXY;
+	
+	// DOMAIN is passed along username:
+	PasswordAuthentication passwordAuthentication = new PasswordAuthentication("DOMAIN\\WinUsername", "WinPassword".toCharArray());
+	
+	FileSession fileSession = new FileSession(url, username,
+		password, proxy, passwordAuthentication);
+ * </pre>
+ * </blockquote>
+ * 
  * @see org.kawanfw.file.api.client.RemoteSession
  * @see org.kawanfw.file.api.client.RemoteFile
  * @see org.kawanfw.file.api.client.RemoteInputStream
@@ -162,12 +185,12 @@ public class FileSession implements Cloneable {
 
     /** Proxy to use with HttpUrlConnection */
     private Proxy proxy = null;
-    
+
     /** For authenticated proxy */
     private PasswordAuthentication passwordAuthentication = null;
 
     /** The Http Parameters instance */
-    private HttpProtocolParameters httpProtocolParameters = null;
+    private SessionParameters sessionParameters = null;
 
     /** The http transfer instance */
     private HttpTransfer httpTransfer = null;
@@ -193,28 +216,28 @@ public class FileSession implements Cloneable {
      *            null for call() or downloadUrl())
      * @param authenticationToken
      *            the actual token of the Awake FILE session to clone
-      * @param proxy
-     *            the proxy to use, null for direct access
+     * @param proxy
+     *            the proxy to use, may be null for direct access
      * @param passwordAuthentication
-     *            the proxy credentials, null if proxy does not require authentication
-     * @param httpProtocolParameters
+     *            the proxy credentials, null if no proxy or if the proxy does not require authentication
+     * @param sessionParameters
      *            the http parameters to use
      * @param remoteSession
      *            the remote session to clone
      */
     private FileSession(String url, String username,
-	    String authenticationToken, Proxy proxy, 
-		 PasswordAuthentication passwordAuthentication,
-	    HttpProtocolParameters httpProtocolParameters,
-	    RemoteSession remoteSession) {
+	    String authenticationToken, Proxy proxy,
+	    PasswordAuthentication passwordAuthentication,
+	    SessionParameters sessionParameters, RemoteSession remoteSession) {
 	this.url = url;
 	this.username = username;
 	this.authenticationToken = authenticationToken;
 	this.proxy = proxy;
 	this.passwordAuthentication = passwordAuthentication;
-	this.httpProtocolParameters = httpProtocolParameters;
+	this.sessionParameters = sessionParameters;
 
-	httpTransfer = HttpTransferUtil.HttpTransferFactory(url, proxy, passwordAuthentication, httpProtocolParameters);
+	httpTransfer = HttpTransferUtil.HttpTransferFactory(url, proxy,
+		passwordAuthentication, sessionParameters);
 
 	this.remoteSession = remoteSession.clone();
     }
@@ -231,11 +254,12 @@ public class FileSession implements Cloneable {
      *            the user password for authentication on the Awake Server (may
      *            be null)
      * @param proxy
-     *            the proxy to use, null for direct access
+     *            the proxy to use, may be null for direct access
      * @param passwordAuthentication
-     *            the proxy credentials, null if proxy does not require authentication
-     * @param httpProtocolParameters
-     *            the http parameters to use (may be null)
+     *            the proxy credentials, null if no proxy or if the proxy does
+     *            not require authentication
+     * @param sessionParameters
+     *            the session parameters to use (may be null)
      * 
      * @throws MalformedURLException
      *             if the url is malformed
@@ -267,26 +291,27 @@ public class FileSession implements Cloneable {
      */
     public FileSession(String url, String username, char[] password,
 	    Proxy proxy, PasswordAuthentication passwordAuthentication,
-	    HttpProtocolParameters httpProtocolParameters)
-	    throws MalformedURLException, UnknownHostException,
-	    ConnectException, SocketException, InvalidLoginException,
-	    RemoteException, SecurityException, IOException {
+	    SessionParameters sessionParameters) throws MalformedURLException,
+	    UnknownHostException, ConnectException, SocketException,
+	    InvalidLoginException, RemoteException, SecurityException,
+	    IOException {
 
-	remoteSession = new RemoteSession(url, username, password, proxy, passwordAuthentication,
-		httpProtocolParameters);
+	remoteSession = new RemoteSession(url, username, password, proxy,
+		passwordAuthentication, sessionParameters);
 
 	debug(remoteSession.toString());
 
 	// keep a copy of HttpTransfer than can not be accessed via
 	// RemoteSession because package protected
-	httpTransfer = HttpTransferUtil.HttpTransferFactory(url, proxy, passwordAuthentication, httpProtocolParameters);
+	httpTransfer = HttpTransferUtil.HttpTransferFactory(url, proxy,
+		passwordAuthentication, sessionParameters);
 
 	this.username = username;
 	this.url = url;
 
 	this.proxy = proxy;
 	this.passwordAuthentication = passwordAuthentication;
-	this.httpProtocolParameters = httpProtocolParameters;
+	this.sessionParameters = sessionParameters;
 
 	this.authenticationToken = remoteSession.getAuthenticationToken();
 
@@ -304,9 +329,10 @@ public class FileSession implements Cloneable {
      *            the user password for authentication on the Awake Server (may
      *            be null)
      * @param proxy
-     *            the proxy to use, null for direct access
+     *            the proxy to use, may be null for direct access
      * @param passwordAuthentication
-     *            the proxy credentials, null if proxy does not require authentication
+     *            the proxy credentials, null if no proxy or if the proxy does
+     *            not require authentication
      * 
      * @throws MalformedURLException
      *             if the url is malformed
@@ -333,7 +359,7 @@ public class FileSession implements Cloneable {
      *             for all other IO / Network / System Error
      * 
      * @deprecated As of version 3.0, replaced by:
-     *             {@link RemoteSession#RemoteSession(String, String, char[], HttpProxy)}
+     *             {@link RemoteSession#RemoteSession(String, String, char[], Proxy, PasswordAuthentication)}
      */
     public FileSession(String url, String username, char[] password,
 	    Proxy proxy, PasswordAuthentication passwordAuthentication)
@@ -380,7 +406,7 @@ public class FileSession implements Cloneable {
      *             for all other IO / Network / System Error
      *
      * @deprecated As of version 3.0, replaced by:
-     *             {@link RemoteSession#RemoteSession(String, String, char[], HttpProxy, HttpProtocolParameters)}
+     *             {@link RemoteSession#RemoteSession(String, String, char[])}
      */
 
     public FileSession(String url, String username, char[] password)
@@ -411,14 +437,14 @@ public class FileSession implements Cloneable {
     }
 
     /**
-     * Returns the {@code HttpProtocolParameters} instance in use for the Awake
-     * FILE session.
+     * Returns the {@code SessionParameters} instance in use for the Awake FILE
+     * session.
      * 
-     * @return the {@code HttpProtocolParameters} instance in use for the Awake
-     *         FILE session
+     * @return the {@code SessionParameters} instance in use for the Awake FILE
+     *         session
      */
-    public HttpProtocolParameters getHttpProtocolParameters() {
-	return this.httpProtocolParameters;
+    public SessionParameters getSessionParameters() {
+	return this.sessionParameters;
     }
 
     /**
@@ -440,14 +466,14 @@ public class FileSession implements Cloneable {
     public Proxy getProxy() {
 	return this.proxy;
     }
-    
-    
+
     /**
      * Returns the proxy credentials
+     * 
      * @return the proxy credentials
      */
     public PasswordAuthentication getPasswordAuthentication() {
-        return passwordAuthentication;
+	return passwordAuthentication;
     }
 
     /**
@@ -483,16 +509,15 @@ public class FileSession implements Cloneable {
      * <p>
      * Large files are split in chunks that are downloaded in sequence. The
      * default chunk length is 10Mb. You can change the default value with
-     * {@link HttpProtocolParameters#setDownloadChunkLength(long)} before
-     * passing {@code HttpProtocolParameters} to this class constructor.
+     * {@link SessionParameters#setDownloadChunkLength(long)} before passing
+     * {@code SessionParameters} to this class constructor.
      * <p>
      * Note that file chunking requires that all chunks be downloaded from to
      * the same web server. Thus, file chunking does not support true stateless
      * architecture with multiple identical web servers. If you want to set a
      * full stateless architecture with multiple identical web servers, you must
      * disable file chunking. This is done by setting a 0 download chunk length
-     * value using {@link HttpProtocolParameters#setDownloadChunkLength(long)}.
-     * <br>
+     * value using {@link SessionParameters#setDownloadChunkLength(long)}. <br>
      * <br>
      * A recovery mechanism allows - in case of failure - to start again in the
      * same JVM run the file download from the last non-downloaded chunk. See
@@ -558,9 +583,9 @@ public class FileSession implements Cloneable {
      * on the server. See User Documentation.
      * <p>
      * Large files are split in chunks that are uploaded in sequence. The
-     * default chunk length is 3Mb. You can change the default value with
-     * {@link HttpProtocolParameters#setUploadChunkLength(long)} before passing
-     * {@code HttpProtocolParameters} to this class constructor.
+     * default chunk length is 10Mb. You can change the default value with
+     * {@link SessionParameters#setUploadChunkLength(long)} before passing
+     * {@code SessionParameters} to this class constructor.
      * <p>
      * Note that file chunking requires all chunks to be sent to the same web
      * server that will aggregate the chunks after the last send. Thus, file
@@ -568,7 +593,7 @@ public class FileSession implements Cloneable {
      * identical web servers. If you want to set a full stateless architecture
      * with multiple identical web servers, you must disable file chunking. This
      * is done by setting a 0 upload chunk length value using
-     * {@link HttpProtocolParameters#setUploadChunkLength(long)}. <br>
+     * {@link SessionParameters#setUploadChunkLength(long)}. <br>
      * <br>
      * A recovery mechanism allows - in case of failure - to start again in the
      * same JVM run the file upload from the last non-uploaded chunk. See User
@@ -1158,8 +1183,9 @@ public class FileSession implements Cloneable {
     @Override
     public FileSession clone() {
 	FileSession fileSession = new FileSession(this.url, this.username,
-		this.authenticationToken, this.proxy, this.passwordAuthentication,
-		this.httpProtocolParameters, remoteSession);
+		this.authenticationToken, this.proxy,
+		this.passwordAuthentication, this.sessionParameters,
+		remoteSession);
 	return fileSession;
     }
 
@@ -1186,7 +1212,7 @@ public class FileSession implements Cloneable {
 
 	proxy = null;
 	passwordAuthentication = null;
-	httpProtocolParameters = null;
+	sessionParameters = null;
 
 	if (httpTransfer != null) {
 	    httpTransfer.close();

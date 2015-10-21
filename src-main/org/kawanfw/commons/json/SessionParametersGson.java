@@ -22,27 +22,64 @@
  * Any modifications to this file must keep this entire header
  * intact.
  */
-package android.app;
+package org.kawanfw.commons.json;
 
-import android.content.Context;
-import android.content.res.AssetManager;
+import java.lang.reflect.Type;
+
+import org.kawanfw.commons.api.client.SessionParameters;
+
+import com.google.gson.Gson;
+import com.google.gson.reflect.TypeToken;
 
 /**
  * 
- * Android emulation for compilation of dedicated Android classes 
- * located in org.kawanfw.file.util.android package.
+ * Class to format a SessionParameter to a JSON String and vice versa using
+ * Gson.
  * 
  * @author Nicolas de Pomereu
- * @since 3.0
  */
-public class Application extends Context{
 
-    public void onCreate() {
+public class SessionParametersGson {
+
+    /**
+     * Protected
+     */
+    protected SessionParametersGson() {
 
     }
-    
-    /** Return an AssetManager instance for your application's package. */
-    public AssetManager getAssets() {
-	return null;
+
+    /**
+     * Format a SessionParameters instance into a JSON String
+     * 
+     * @param sessionParameters
+     *            a SessionParameters instance
+     * @return the JSON string
+     */
+    public static String toJson(SessionParameters sessionParameters) {
+
+	Gson gson = new Gson();
+	Type type = new TypeToken<SessionParameters>() {
+	}.getType();
+	String jsonString = gson.toJson(sessionParameters, type);
+
+	return jsonString;
     }
+
+    /**
+     * Format a JSON String back to a SessionParameters instance
+     * 
+     * @param jsonString
+     *            The JSON string containing the HttpProxy
+     * @return the SessionParameters instance
+     */
+    public static SessionParameters fromJson(String jsonString) {
+	Gson gson = new Gson();
+	Type type = new TypeToken<SessionParameters>() {
+	}.getType();
+
+	SessionParameters sessionParameters = gson.fromJson(
+		jsonString, type);
+	return sessionParameters;
+    }
+
 }
