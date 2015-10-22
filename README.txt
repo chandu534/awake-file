@@ -22,10 +22,10 @@ open source projects and in your commercial applications.
 1) Compiling source code
 ------------------------
 
-Source code requires dependencies defined in awake-file-client & awake-file-server artifacts 
-on Maven Central:
- https://repo1.maven.org/maven2/org/awake-file/awake-file-client/3.1/awake-file-client-3.1.pom
- https://repo1.maven.org/maven2/org/awake-file/awake-file-server/3.1/awake-file-server-3.1.pom
+Source code requires dependencies defined in awake-file-client & 
+awake-file-server artifacts on Maven Central:
+ https://goo.gl/tvguQO
+ https://goo.gl/ztd7M6
 
 The libraries are also available in Awake FILE binaries (see below).
 
