@@ -40,9 +40,8 @@ public class TestRunnerConsoleWithBigFilesNio {
      * @param args
      */
     public static void main(String[] args) throws Exception {
-	TestParms.LOOP_MODE = true;
 	TestParms.TEST_BIG_FILES = true;
-	TestParms.TEST_BIG_FILES_SHA = false;
+	TestParms.TEST_BIG_FILES_SHA = true;
 	TestRunnerConsoleNio.startIt();
     }
 

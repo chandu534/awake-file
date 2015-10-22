@@ -6,15 +6,28 @@
 Introduction
 ------------
 
+Awake FILE is a secure Open Source framework that allows to program very 
+easily file uploads/downloads, remote file access and RPC through http. 
+File transfers include powerful features like file chunking and automatic 
+recovery mechanism.
+
+Security has been taken into account from the design: server side allows 
+to specify strong security rules in order to protect the files and to
+secure the RPC calls.
+
+Awake FILE is licensed through the GNU Lesser General Public License 
+(LGPL v2.1): you can use it for free and without any constraints in your 
+open source projects and in your commercial applications.
+
+
+Build instructions
+------------------
+
 Awake FILE requires JDK 1.6+.
 
 Main source code is in /src-main.
 JUnit test suite is in /src-test.
 Dependencies are in /lib
-
-
-Build instructions
-------------------
 
 Awake FILE uses Ant to build the jars. 
 (We use Eclipse 3.7+, but the builds may be adapted to any IDE):
@@ -30,6 +43,7 @@ Awake FILE uses Ant to build the jars.
 
 Modify the webapp.lib.dir property according to your deployment
 webapp directory.
+
 
 JUnit tests
 -----------
