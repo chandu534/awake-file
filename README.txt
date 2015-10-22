@@ -19,26 +19,23 @@ Awake FILE is licensed through the GNU Lesser General Public License
 open source projects and in your commercial applications.
 
 
-Installation - Client Side
---------------------------
+1) Compiling source code
+------------------------
 
-Awake FILE requires JDK 1.6+.
+Source code requires dependencies defined in awake-file-client & awake-file-server artifacts 
+on Maven Central:
+ https://repo1.maven.org/maven2/org/awake-file/awake-file-client/3.1/awake-file-client-3.1.pom
+ https://repo1.maven.org/maven2/org/awake-file/awake-file-server/3.1/awake-file-server-3.1.pom
 
-The /lib-client directory contains the client side Awake FILE library 
-awake-file-client 3.1.jar and the dependencies.
+The libraries are also available in Awake FILE binaries (see below).
 
-Add all the jars of /lib-client subdirectory to your client project.
+The /ant directory contains the Ant build file.
 
 
-Installation - Server Side
---------------------------
+1) Downloading binaries
+-----------------------
 
-The /lib-server directory contains the server side Awake FILE library 
-awake-file-server-3.1.jar and the dependencies.
-
-Add all the jars of /lib-server subdirectory to your server project and
-to the WEB-INF/lib of your servlet container.
-
+Go to: http://www.awake-file.org/download.
 
 
 Feedback
