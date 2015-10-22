@@ -24,8 +24,8 @@ open source projects and in your commercial applications.
 
 Source code requires dependencies defined in awake-file-client & 
 awake-file-server artifacts on Maven Central:
- https://goo.gl/tvguQO
- https://goo.gl/ztd7M6
+https://goo.gl/tvguQO
+https://goo.gl/ztd7M6
 
 The libraries are also available in Awake FILE binaries (see below).
 
