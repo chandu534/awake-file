@@ -19,6 +19,12 @@ Awake FILE is licensed through the GNU Lesser General Public License
 open source projects and in your commercial applications.
 
 
+Downloading binaries
+--------------------
+
+Go to: http://www.awake-file.org/download.
+
+
 Compiling source code
 ---------------------
 
@@ -27,15 +33,9 @@ awake-file-server artifacts on Maven Central:
 https://goo.gl/tvguQO
 https://goo.gl/ztd7M6
 
-The libraries are also available in Awake FILE binaries (see below).
+The libraries are also available in Awake FILE binaries.
 
 The /ant directory contains the Ant build file.
-
-
-Downloading binaries
---------------------
-
-Go to: http://www.awake-file.org/download.
 
 
 Feedback
